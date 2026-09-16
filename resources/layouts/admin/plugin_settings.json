@@ -1,0 +1,775 @@
+{
+    "version": "1.0.0",
+    "layout_name": "plugin_settings",
+    "permissions": [
+        "core.plugins.update"
+    ],
+    "extends": "_admin_base",
+    "meta": {
+        "title": "$t:g7-webzine-addon.settings.title",
+        "description": "$t:g7-webzine-addon.settings.description"
+    },
+    "data_sources": [
+        {
+            "id": "settings",
+            "label_key": "$t:g7-webzine-addon.editor.data_source.settings",
+            "type": "api",
+            "endpoint": "/api/admin/plugins/{{route.identifier}}/settings",
+            "method": "GET",
+            "auto_fetch": true,
+            "auth_required": true,
+            "initLocal": "form",
+            "refetchOnMount": true
+        }
+    ],
+    "slots": {
+        "content": [
+            {
+                "id": "plugin_settings_content",
+                "type": "basic",
+                "name": "Div",
+                "dataKey": "form",
+                "trackChanges": true,
+                "props": {
+                    "className": "admin-page-content-responsive"
+                },
+                "children": [
+                    {
+                        "id": "page_header",
+                        "type": "composite",
+                        "name": "PageHeader",
+                        "props": {
+                            "title": "$t:g7-webzine-addon.settings.title",
+                            "description": "$t:g7-webzine-addon.settings.description",
+                            "backPath": "/admin/plugins",
+                            "backLabel": "$t:admin.plugins.back_to_list"
+                        }
+                    },
+                    {
+                        "id": "notice_banner",
+                        "type": "basic",
+                        "name": "Div",
+                        "props": {
+                            "className": "alert-info"
+                        },
+                        "children": [
+                            {
+                                "type": "basic",
+                                "name": "Div",
+                                "props": {
+                                    "className": "flex gap-3"
+                                },
+                                "children": [
+                                    {
+                                        "type": "basic",
+                                        "name": "Icon",
+                                        "props": {
+                                            "name": "circle-info",
+                                            "className": "text-xl text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+                                        }
+                                    },
+                                    {
+                                        "type": "basic",
+                                        "name": "P",
+                                        "props": {
+                                            "className": "text-info-soft"
+                                        },
+                                        "text": "$t:g7-webzine-addon.settings.notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": "validation_error",
+                        "type": "basic",
+                        "name": "Div",
+                        "if": "{{_local.errors}}",
+                        "props": {
+                            "className": "alert-danger"
+                        },
+                        "children": [
+                            {
+                                "type": "basic",
+                                "name": "Div",
+                                "props": {
+                                    "className": "flex gap-3"
+                                },
+                                "children": [
+                                    {
+                                        "type": "basic",
+                                        "name": "Icon",
+                                        "props": {
+                                            "name": "triangle-exclamation",
+                                            "className": "text-xl text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+                                        }
+                                    },
+                                    {
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            {
+                                                "type": "basic",
+                                                "name": "H3",
+                                                "props": {
+                                                    "className": "text-error-strong"
+                                                },
+                                                "text": "$t:admin.plugins.settings.validation_error"
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "Ul",
+                                                "if": "{{typeof _local.errors === 'object' && Object.keys(_local.errors).length > 0}}",
+                                                "props": {
+                                                    "className": "mt-2 list-disc list-inside space-y-1"
+                                                },
+                                                "iteration": {
+                                                    "source": "Object.entries(_local.errors ?? {}).flatMap(([field, messages]) => Array.isArray(messages) ? messages : [messages])",
+                                                    "item_var": "message"
+                                                },
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Li",
+                                                        "props": {
+                                                            "className": "text-error-soft"
+                                                        },
+                                                        "text": "{{message}}"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": "settings_form",
+                        "type": "basic",
+                        "name": "Div",
+                        "props": {
+                            "className": "mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+                        },
+                        "children": [
+                            {
+                                "id": "settings_fields",
+                                "type": "basic",
+                                "name": "Div",
+                                "props": {
+                                    "className": "p-6 space-y-6"
+                                },
+                                "children": [
+                                    {
+                                        "id": "field_no_thumbnail_mode",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            {
+                                                "type": "basic",
+                                                "name": "Label",
+                                                "props": {
+                                                    "className": "form-label"
+                                                },
+                                                "text": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.label"
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "P",
+                                                "props": {
+                                                    "className": "form-hint"
+                                                },
+                                                "text": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.hint"
+                                            },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "no_thumbnail_mode",
+                                                    "value": "{{_local.form.no_thumbnail_mode}}",
+                                                    "options": [
+                                                        {
+                                                            "label": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.summary",
+                                                            "value": "summary"
+                                                        },
+                                                        {
+                                                            "label": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.placeholder",
+                                                            "value": "placeholder"
+                                                        },
+                                                        {
+                                                            "label": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.image",
+                                                            "value": "image"
+                                                        }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    {
+                                                        "type": "change",
+                                                        "handler": "setState",
+                                                        "params": {
+                                                            "target": "local",
+                                                            "form.no_thumbnail_mode": "{{$event.target.value}}",
+                                                            "formTouched": true
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "P",
+                                                "if": "{{_local.form.no_thumbnail_mode !== 'placeholder' && _local.form.no_thumbnail_mode !== 'image'}}",
+                                                "props": {
+                                                    "className": "form-hint mt-1 ml-1"
+                                                },
+                                                "text": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.summary_note"
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "P",
+                                                "if": "{{_local.form.no_thumbnail_mode === 'placeholder'}}",
+                                                "props": {
+                                                    "className": "form-hint mt-1 ml-1"
+                                                },
+                                                "text": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.placeholder_note"
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "P",
+                                                "if": "{{_local.form.no_thumbnail_mode === 'image'}}",
+                                                "props": {
+                                                    "className": "form-hint mt-1 ml-1"
+                                                },
+                                                "text": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.image_note"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "fallback_section",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "if": "{{_local.form.no_thumbnail_mode === 'image'}}",
+                                        "props": {
+                                            "className": "space-y-6 border-t border-gray-200 dark:border-gray-700 pt-6"
+                                        },
+                                        "children": [
+                                            {
+                                                "id": "fallback_preview",
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "props": {
+                                                    "className": "rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-2 bg-gray-50 dark:bg-gray-900/40"
+                                                },
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Label",
+                                                        "props": {
+                                                            "className": "form-label"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.preview.title"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Div",
+                                                        "props": {
+                                                            "className": "relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                                                        },
+                                                        "if": "{{(_local.form.fallback_source === 'url' && _local.form.fallback_image_url) || (_local.form.fallback_source !== 'url' && _local.form.fallback_upload_version)}}",
+                                                        "children": [
+                                                            {
+                                                                "comment": "업로드 방식 미리보기 — 목록과 같은 정사각 crop 으로 보여준다",
+                                                                "type": "basic",
+                                                                "name": "Img",
+                                                                "if": "{{_local.form.fallback_source !== 'url' && _local.form.fallback_upload_version}}",
+                                                                "props": {
+                                                                    "src": "/api/plugins/g7-webzine-addon/fallback-image/{{_local.form.fallback_upload_version}}",
+                                                                    "alt": "{{_local.form.fallback_alt}}",
+                                                                    "className": "w-full h-full object-cover"
+                                                                }
+                                                            },
+                                                            {
+                                                                "comment": "URL 방식 미리보기",
+                                                                "type": "basic",
+                                                                "name": "Img",
+                                                                "if": "{{_local.form.fallback_source === 'url' && _local.form.fallback_image_url}}",
+                                                                "props": {
+                                                                    "src": "{{_local.form.fallback_image_url}}",
+                                                                    "alt": "{{_local.form.fallback_alt}}",
+                                                                    "className": "w-full h-full object-cover"
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "if": "{{(_local.form.fallback_source === 'url' && !_local.form.fallback_image_url) || (_local.form.fallback_source !== 'url' && !_local.form.fallback_upload_version)}}",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.preview.empty"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.preview.note"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "field_fallback_source",
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Label",
+                                                        "props": {
+                                                            "className": "form-label"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_source.label"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_source.hint"
+                                                    },
+                                                    {
+                                                        "type": "composite",
+                                                        "name": "RadioGroup",
+                                                        "props": {
+                                                            "name": "fallback_source",
+                                                            "value": "{{_local.form.fallback_source}}",
+                                                            "options": [
+                                                                {
+                                                                    "label": "$t:g7-webzine-addon.settings.fields.fallback_source.upload",
+                                                                    "value": "upload"
+                                                                },
+                                                                {
+                                                                    "label": "$t:g7-webzine-addon.settings.fields.fallback_source.url",
+                                                                    "value": "url"
+                                                                }
+                                                            ],
+                                                            "className": "mt-2"
+                                                        },
+                                                        "actions": [
+                                                            {
+                                                                "type": "change",
+                                                                "handler": "setState",
+                                                                "params": {
+                                                                    "target": "local",
+                                                                    "form.fallback_source": "{{$event.target.value}}",
+                                                                    "formTouched": true
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "field_fallback_upload",
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "if": "{{_local.form.fallback_source !== 'url'}}",
+                                                "props": {
+                                                    "className": "space-y-2"
+                                                },
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Label",
+                                                        "props": {
+                                                            "className": "form-label"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_upload.label"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_upload.hint"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "text-sm text-gray-600 dark:text-gray-400"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_upload.current {{_local.uploadedLabel || _local.form.fallback_upload_name || '—'}}"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "FileInput",
+                                                        "props": {
+                                                            "accept": ".png,.jpg,.jpeg,.webp,.gif",
+                                                            "buttonText": "$t:common.browse",
+                                                            "placeholder": "$t:g7-webzine-addon.settings.fields.fallback_upload.no_file",
+                                                            "className": "w-full"
+                                                        },
+                                                        "actions": [
+                                                            {
+                                                                "type": "change",
+                                                                "handler": "apiCall",
+                                                                "auth_required": true,
+                                                                "target": "/api/plugins/g7-webzine-addon/admin/fallback-image",
+                                                                "params": {
+                                                                    "method": "POST",
+                                                                    "contentType": "multipart/form-data",
+                                                                    "body": {
+                                                                        "fallback_image": "{{$event.target.value}}"
+                                                                    }
+                                                                },
+                                                                "onSuccess": [
+                                                                    {
+                                                                        "handler": "setState",
+                                                                        "params": {
+                                                                            "target": "local",
+                                                                            "errors": null,
+                                                                            "uploadedLabel": "{{response.data.name}}",
+                                                                            "form.fallback_upload_path": "{{response.data.path}}",
+                                                                            "form.fallback_upload_name": "{{response.data.name}}",
+                                                                            "form.fallback_upload_version": "{{response.data.version}}",
+                                                                            "formTouched": true
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "handler": "toast",
+                                                                        "params": {
+                                                                            "type": "success",
+                                                                            "message": "$t:g7-webzine-addon.settings.upload_success"
+                                                                        }
+                                                                    }
+                                                                ],
+                                                                "onError": [
+                                                                    {
+                                                                        "handler": "setState",
+                                                                        "params": {
+                                                                            "target": "local",
+                                                                            "errors": "{{error.errors}}"
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "handler": "toast",
+                                                                        "params": {
+                                                                            "type": "error",
+                                                                            "message": "{{error.message ?? '$t:g7-webzine-addon.settings.upload_error'}}"
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_upload.replace_note"
+                                                    }
+                                                ],
+                                                "comment": "파일 선택 즉시 업로드한다. 엔진의 로컬 상태는 값을 복제 저장하는데 그 과정에서 File 객체가 빈 객체로 무너져(실측), \"선택해 두었다가 버튼으로 올리는\" 2단계 방식은 빈 본문을 보내 422 가 된다. $event 의 File 을 같은 액션에서 바로 전송해 회피한다."
+                                            },
+                                            {
+                                                "id": "field_fallback_image_url",
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "if": "{{_local.form.fallback_source === 'url'}}",
+                                                "props": {
+                                                    "className": "space-y-2"
+                                                },
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Label",
+                                                        "props": {
+                                                            "className": "form-label"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_image_url.label"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_image_url.hint"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Input",
+                                                        "props": {
+                                                            "type": "text",
+                                                            "name": "fallback_image_url",
+                                                            "placeholder": "https://example.com/cover.webp",
+                                                            "className": "mt-1"
+                                                        }
+                                                    },
+                                                    {
+                                                        "comment": "URL 방식의 위험 고지 — 원본이 사라지면 대체 이미지도 함께 깨진다",
+                                                        "type": "basic",
+                                                        "name": "Div",
+                                                        "props": {
+                                                            "className": "alert-warning"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "type": "basic",
+                                                                "name": "Div",
+                                                                "props": {
+                                                                    "className": "flex gap-3"
+                                                                },
+                                                                "children": [
+                                                                    {
+                                                                        "type": "basic",
+                                                                        "name": "Icon",
+                                                                        "props": {
+                                                                            "name": "triangle-exclamation",
+                                                                            "className": "text-xl text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "type": "basic",
+                                                                        "name": "P",
+                                                                        "props": {
+                                                                            "className": "text-warning-soft"
+                                                                        },
+                                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_image_url.warning"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "id": "field_fallback_alt",
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Label",
+                                                        "props": {
+                                                            "className": "form-label"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_alt.label"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "P",
+                                                        "props": {
+                                                            "className": "form-hint"
+                                                        },
+                                                        "text": "$t:g7-webzine-addon.settings.fields.fallback_alt.hint"
+                                                    },
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Input",
+                                                        "props": {
+                                                            "type": "text",
+                                                            "name": "fallback_alt",
+                                                            "placeholder": "$t:g7-webzine-addon.settings.fields.fallback_alt.placeholder",
+                                                            "className": "mt-1"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": "footer_buttons",
+                        "type": "basic",
+                        "name": "Div",
+                        "props": {
+                            "className": "sticky-footer-buttons"
+                        },
+                        "children": [
+                            {
+                                "id": "cancel_button",
+                                "type": "basic",
+                                "name": "Button",
+                                "props": {
+                                    "className": "btn btn-secondary"
+                                },
+                                "actions": [
+                                    {
+                                        "type": "click",
+                                        "handler": "navigate",
+                                        "params": {
+                                            "path": "/admin/plugins"
+                                        }
+                                    }
+                                ],
+                                "children": [
+                                    {
+                                        "type": "basic",
+                                        "name": "Span",
+                                        "text": "$t:common.cancel"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "save_button",
+                                "type": "basic",
+                                "name": "Button",
+                                "props": {
+                                    "disabled": "{{(!_local.hasChanges && !_local.formTouched) || _local.isSaving}}",
+                                    "className": "btn btn-primary flex-center gap-1.5"
+                                },
+                                "actions": [
+                                    {
+                                        "type": "click",
+                                        "handler": "sequence",
+                                        "actions": [
+                                            {
+                                                "handler": "setState",
+                                                "params": {
+                                                    "target": "local",
+                                                    "isSaving": true,
+                                                    "errors": null
+                                                }
+                                            },
+                                            {
+                                                "handler": "apiCall",
+                                                "auth_required": true,
+                                                "target": "/api/admin/plugins/{{route.identifier}}/settings",
+                                                "params": {
+                                                    "method": "PUT",
+                                                    "body": "{{_local.form}}"
+                                                },
+                                                "onSuccess": [
+                                                    {
+                                                        "handler": "setState",
+                                                        "params": {
+                                                            "target": "local",
+                                                            "isSaving": false,
+                                                            "hasChanges": false,
+                                                            "formTouched": false
+                                                        }
+                                                    },
+                                                    {
+                                                        "handler": "toast",
+                                                        "params": {
+                                                            "type": "success",
+                                                            "message": "$t:admin.plugins.settings.save_success"
+                                                        }
+                                                    },
+                                                    {
+                                                        "handler": "refetchDataSource",
+                                                        "params": {
+                                                            "dataSourceId": "settings"
+                                                        }
+                                                    }
+                                                ],
+                                                "onError": [
+                                                    {
+                                                        "handler": "setState",
+                                                        "params": {
+                                                            "target": "local",
+                                                            "isSaving": false,
+                                                            "errors": "{{error.errors}}"
+                                                        }
+                                                    },
+                                                    {
+                                                        "handler": "toast",
+                                                        "params": {
+                                                            "type": "error",
+                                                            "message": "{{error.message ?? '$t:admin.plugins.settings.save_error'}}"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "children": [
+                                    {
+                                        "type": "basic",
+                                        "name": "Icon",
+                                        "if": "{{_local.isSaving}}",
+                                        "props": {
+                                            "name": "spinner",
+                                            "className": "spinner-sm"
+                                        }
+                                    },
+                                    {
+                                        "type": "basic",
+                                        "name": "Span",
+                                        "text": "{{_local.isSaving ? '$t:common.saving' : '$t:common.save'}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "schema": {
+        "no_thumbnail_mode": {
+            "type": "enum",
+            "options": [
+                "summary",
+                "placeholder",
+                "image"
+            ],
+            "default": "summary",
+            "label": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.no_thumbnail_mode.hint"
+        },
+        "fallback_source": {
+            "type": "enum",
+            "options": [
+                "upload",
+                "url"
+            ],
+            "default": "upload",
+            "label": "$t:g7-webzine-addon.settings.fields.fallback_source.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.fallback_source.hint"
+        },
+        "fallback_upload_path": {
+            "type": "string",
+            "default": "",
+            "label": "$t:g7-webzine-addon.settings.fields.fallback_upload.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.fallback_upload.hint"
+        },
+        "fallback_upload_name": {
+            "type": "string",
+            "default": "",
+            "label": "$t:g7-webzine-addon.settings.fields.fallback_upload.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.fallback_upload.hint"
+        },
+        "fallback_upload_version": {
+            "type": "string",
+            "default": "",
+            "label": "$t:g7-webzine-addon.settings.fields.fallback_upload.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.fallback_upload.hint"
+        },
+        "fallback_image_url": {
+            "type": "string",
+            "default": "",
+            "label": "$t:g7-webzine-addon.settings.fields.fallback_image_url.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.fallback_image_url.hint"
+        },
+        "fallback_alt": {
+            "type": "string",
+            "default": "",
+            "label": "$t:g7-webzine-addon.settings.fields.fallback_alt.label",
+            "hint": "$t:g7-webzine-addon.settings.fields.fallback_alt.hint"
+        }
+    }
+}

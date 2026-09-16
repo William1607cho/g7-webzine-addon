@@ -2,11 +2,17 @@
 
 namespace Plugins\G7\Webzine\Addon;
 
+use App\Enums\ExtensionOwnerType;
 use App\Extension\AbstractPlugin;
+use App\Extension\Helpers\ExtensionMenuSyncHelper;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Plugins\G7\Webzine\Addon\Listeners\BoardTypeSeedListener;
+use Plugins\G7\Webzine\Addon\Listeners\SettingsSavedListener;
 use Plugins\G7\Webzine\Addon\Listeners\WebzineIndexWidgetListener;
 use Plugins\G7\Webzine\Addon\Listeners\WebzineThumbnailListener;
+use Plugins\G7\Webzine\Addon\Services\FallbackImageService;
+use Plugins\G7\Webzine\Addon\Support\WebzineSettings;
 
 /**
  * 웹진게시판 애드온 (g7-webzine-addon) — 목록 화면 카드형(썸네일+요약) 레이아웃, 0.1.0.
@@ -52,6 +58,197 @@ class Plugin extends AbstractPlugin
     }
 
     /**
+     * 플러그인 설정 스키마 (v1.1.0 신설).
+     *
+     * 한 화면에 두 묶음이 들어간다:
+     *
+     *  - `no_thumbnail_mode` : 썸네일이 없는 글의 썸네일 영역을 어떻게 할지 (요약만 /
+     *    기본 자리표시자 / 대체 이미지). **기본값은 "요약만"** — 이 애드온의 원래 사양이다
+     *    (v1.0.0 은 카드형 레이아웃을 복제해 오면서 "이미지 없음" 자리표시자가 함께
+     *    딸려 왔었다).
+     *  - `fallback_*` : "대체 이미지" 모드에서 쓸 이미지의 출처(업로드 / URL)와 대체 텍스트.
+     *
+     * `fallback_upload_*` 세 값은 관리자가 직접 타이핑하는 값이 아니라 **업로드 API 가
+     * 채우는 서버 관리 값**이다(설정 화면의 업로드 버튼이 폼에 넣어 준다). 스키마에
+     * 두는 이유는 설정 파일에 함께 저장·복원되어야 하기 때문이다.
+     *
+     * @return array<string, array<string, mixed>> 설정 스키마
+     */
+    public function getSettingsSchema(): array
+    {
+        return [
+            'no_thumbnail_mode' => [
+                'type' => 'enum',
+                'options' => WebzineSettings::MODES,
+                'default' => WebzineSettings::MODE_SUMMARY,
+                'label' => [
+                    'ko' => '썸네일 없을 때 표시',
+                    'en' => 'When No Thumbnail',
+                ],
+                'hint' => [
+                    'ko' => '본문에 이미지가 없어 썸네일을 만들 수 없는 글의 목록 표시 방식입니다.',
+                    'en' => 'How to render list rows for posts with no image to build a thumbnail from.',
+                ],
+                'required' => false,
+            ],
+            'fallback_source' => [
+                'type' => 'enum',
+                'options' => WebzineSettings::SOURCES,
+                'default' => WebzineSettings::SOURCE_UPLOAD,
+                'label' => [
+                    'ko' => '대체 이미지 지정 방식',
+                    'en' => 'Fallback Image Source',
+                ],
+                'hint' => [
+                    'ko' => '대체 이미지를 이 사이트에 업로드해 쓸지, 이미 있는 이미지 주소를 쓸지 선택합니다.',
+                    'en' => 'Whether to upload the fallback image to this site or point at an existing image URL.',
+                ],
+                'required' => false,
+            ],
+            'fallback_upload_path' => [
+                'type' => 'string',
+                'max' => 180,
+                'default' => '',
+                'label' => [
+                    'ko' => '업로드된 대체 이미지 경로',
+                    'en' => 'Uploaded Fallback Image Path',
+                ],
+                'hint' => [
+                    'ko' => '업로드 방식일 때 쓰는 저장 경로입니다. 설정 화면의 업로드 버튼이 자동으로 채웁니다.',
+                    'en' => 'Storage path used in upload mode. The settings screen fills this automatically.',
+                ],
+                'required' => false,
+            ],
+            'fallback_upload_name' => [
+                'type' => 'string',
+                'max' => 255,
+                'default' => '',
+                'label' => [
+                    'ko' => '업로드된 대체 이미지 원본 파일명',
+                    'en' => 'Uploaded Fallback Image Original Name',
+                ],
+                'hint' => [
+                    'ko' => '표시용 원본 파일명입니다. 설정 화면의 업로드 버튼이 자동으로 채웁니다.',
+                    'en' => 'Original file name, for display only. The settings screen fills this automatically.',
+                ],
+                'required' => false,
+            ],
+            'fallback_upload_version' => [
+                'type' => 'string',
+                'max' => 64,
+                'default' => '',
+                'label' => [
+                    'ko' => '업로드된 대체 이미지 버전 해시',
+                    'en' => 'Uploaded Fallback Image Version Hash',
+                ],
+                'hint' => [
+                    'ko' => '파일 내용 해시입니다. 공개 URL 에 들어가 이미지 교체 즉시 캐시를 무효화합니다. 설정 화면의 업로드 버튼이 자동으로 채웁니다.',
+                    'en' => 'Content hash embedded in the public URL so replacing the image busts caches immediately. The settings screen fills this automatically.',
+                ],
+                'required' => false,
+            ],
+            'fallback_image_url' => [
+                'type' => 'string',
+                'max' => 2000,
+                'default' => '',
+                'label' => [
+                    'ko' => '대체 이미지 URL',
+                    'en' => 'Fallback Image URL',
+                ],
+                'hint' => [
+                    'ko' => 'URL 방식일 때 쓸 이미지 주소입니다. https:// 또는 http:// 로 시작하는 주소, 혹은 / 로 시작하는 사이트 내 경로만 허용합니다.',
+                    'en' => 'Image address used in URL mode. Only https:// or http:// addresses, or site-internal paths starting with /, are accepted.',
+                ],
+                'required' => false,
+            ],
+            'fallback_alt' => [
+                'type' => 'string',
+                'max' => 200,
+                'default' => '',
+                'label' => [
+                    'ko' => '대체 이미지 대체 텍스트',
+                    'en' => 'Fallback Image Alt Text',
+                ],
+                'hint' => [
+                    'ko' => '이미지를 볼 수 없는 환경(스크린리더 등)에서 읽히는 문구입니다. 비워 두면 사이트명이 쓰입니다.',
+                    'en' => 'Text announced where the image cannot be seen (screen readers, etc.). Defaults to the site name when left empty.',
+                ],
+                'required' => false,
+            ],
+        ];
+    }
+
+    /**
+     * 플러그인 설정 기본값 (v1.1.0 신설).
+     *
+     * 공개 배포 기본값은 "요약만" — 썸네일이 없으면 썸네일 영역을 아예 그리지 않는다.
+     *
+     * @return array<string, string> 기본 설정값
+     */
+    public function getConfigValues(): array
+    {
+        return [
+            'no_thumbnail_mode' => WebzineSettings::MODE_SUMMARY,
+            'fallback_source' => WebzineSettings::SOURCE_UPLOAD,
+            'fallback_upload_path' => '',
+            'fallback_upload_name' => '',
+            'fallback_upload_version' => '',
+            'fallback_image_url' => '',
+            'fallback_alt' => '',
+        ];
+    }
+
+    /**
+     * 관리자 메뉴 정의 (v1.1.0 신설).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAdminMenus(): array
+    {
+        return [
+            [
+                'name' => ['ko' => '웹진게시판 애드온', 'en' => 'Webzine Board Add-on'],
+                'slug' => 'g7-webzine-addon-settings',
+                'url' => '/admin/plugins/g7-webzine-addon/settings',
+                'icon' => 'fas fa-newspaper',
+                'order' => 62,
+            ],
+        ];
+    }
+
+    /**
+     * 플러그인 활성화 — 관리자 메뉴 등록 (v1.1.0 신설).
+     */
+    public function activate(): bool
+    {
+        $helper = app(ExtensionMenuSyncHelper::class);
+
+        foreach ($this->getAdminMenus() as $menuData) {
+            $helper->syncMenuRecursive(
+                $menuData,
+                ExtensionOwnerType::Plugin,
+                $this->getIdentifier(),
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * 플러그인 비활성화 — 관리자 메뉴 제거 (v1.1.0 신설).
+     */
+    public function deactivate(): bool
+    {
+        app(ExtensionMenuSyncHelper::class)->cleanupStaleMenus(
+            ExtensionOwnerType::Plugin,
+            $this->getIdentifier(),
+            currentSlugs: [],
+        );
+
+        return true;
+    }
+
+    /**
      * 훅 리스너 목록.
      *
      * - BoardTypeSeedListener: `seed.sirsoft-board.board_types.translations` 필터에 붙어,
@@ -63,6 +260,9 @@ class Plugin extends AbstractPlugin
      * - WebzineThumbnailListener: `sirsoft-board.post.filter_content_thumbnail` 필터에
      *   붙어, webzine 게시판 글에 한해 본문 첫 이미지가 외부 origin 이어도(http/https 만,
      *   data:/javascript: 등 위험 스킴은 계속 제외) 썸네일 후보로 허용한다.
+     * - SettingsSavedListener(v1.1.0): `core.plugin_settings.after_save` 액션에 붙어,
+     *   설정 저장 시 쓰지 않는 대체 이미지 파일을 정리하고 확장 캐시 버전을 올려
+     *   목록 레이아웃 변경이 새로고침 한 번에 반영되게 한다.
      *
      * @return array<int, class-string>
      */
@@ -72,6 +272,7 @@ class Plugin extends AbstractPlugin
             BoardTypeSeedListener::class,
             WebzineIndexWidgetListener::class,
             WebzineThumbnailListener::class,
+            SettingsSavedListener::class,
         ];
     }
 
@@ -116,7 +317,24 @@ class Plugin extends AbstractPlugin
 
         DB::table('board_types')->where('slug', self::WEBZINE_BOARD_TYPE)->delete();
 
+        $this->deactivate();
+        $this->purgeFallbackImages();
+
         return true;
+    }
+
+    /**
+     * 업로드된 대체 이미지 파일을 모두 지운다 (제거 시 잔존 파일 방지, v1.1.0 신설).
+     *
+     * 제거 흐름을 막을 만한 일이 아니므로 실패해도 경고만 남긴다.
+     */
+    private function purgeFallbackImages(): void
+    {
+        try {
+            app(FallbackImageService::class)->deleteAll();
+        } catch (\Throwable $e) {
+            Log::warning('[g7-webzine-addon] 대체 이미지 저장소 정리 실패', ['error' => $e->getMessage()]);
+        }
     }
 
     /**

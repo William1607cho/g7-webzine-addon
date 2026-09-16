@@ -1,0 +1,56 @@
+{
+    "editor": {
+        "data_source": {
+            "settings": "Webzine Board Add-on Settings"
+        }
+    },
+    "settings": {
+        "title": "Webzine Board Add-on",
+        "description": "Choose how webzine board lists render posts that have no thumbnail.",
+        "notice": "These settings apply to the list screen of every board using the webzine type. Posts that do have a thumbnail are unaffected.",
+        "upload_button": "Upload Image",
+        "uploading": "Uploading…",
+        "upload_success": "Image uploaded. Press Save below to apply it.",
+        "upload_error": "Failed to upload the image.",
+        "preview": {
+            "title": "Current Fallback Image",
+            "empty": "No fallback image yet. Upload one below or enter a URL.",
+            "note": "In the list it is cropped to a square (center-cropped)."
+        },
+        "fields": {
+            "no_thumbnail_mode": {
+                "label": "When No Thumbnail",
+                "hint": "How to render list rows for posts with no image to build a thumbnail from.",
+                "summary": "Summary only (default)",
+                "placeholder": "Default placeholder",
+                "image": "Fallback image",
+                "summary_note": "The thumbnail area is not rendered at all, so the title and summary use the full row width.",
+                "placeholder_note": "Shows a grey box with an image icon and a \"No image\" label.",
+                "image_note": "Shows the image configured below in place of the thumbnail."
+            },
+            "fallback_source": {
+                "label": "Fallback Image Source",
+                "hint": "Whether to upload the fallback image to this site or point at an existing image URL.",
+                "upload": "Upload (recommended)",
+                "url": "Image URL"
+            },
+            "fallback_upload": {
+                "label": "Fallback Image File",
+                "hint": "PNG, JPG, WEBP or GIF, up to 2MB. SVG is not allowed for security reasons. The file uploads as soon as you pick it; press Save below to actually apply it.",
+                "current": "Current file:",
+                "no_file": "No file selected",
+                "replace_note": "Uploading a new image and saving cleans up the previous file automatically and takes effect for visitors right away."
+            },
+            "fallback_image_url": {
+                "label": "Fallback Image URL",
+                "hint": "Enter an https:// or http:// address, or a site-internal path starting with /.",
+                "warning": "With an external address, the fallback image breaks too if the original is deleted or changed. In that case the row falls back to summary only."
+            },
+            "fallback_alt": {
+                "label": "Alt Text",
+                "hint": "Text announced where the image cannot be seen (screen readers, etc.). Defaults to the site name when left empty.",
+                "placeholder": "Defaults to the site name"
+            }
+        }
+    }
+}

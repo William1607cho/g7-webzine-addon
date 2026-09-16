@@ -19,14 +19,79 @@ and two `core.layout_extension.after_apply` / `sirsoft-board.post
 | Feature | What it does |
 |---|---|
 | **Webzine board type** | `install()` adds a `webzine` row to `board_types` (kept alive across re-seeds by a filter listener, same pattern as `g7-forum-addon`'s `forum` type). `uninstall()` removes it, or refuses if a board still uses it. |
-| **Thumbnail + summary list** | `board/index` renders as a 1-column list for `webzine` boards — a fixed 80×80px square thumbnail on the left (or a placeholder icon when the post has none), and on the right: title (with notice/category/new badges, truncated), a 150-character plain-text summary, author, timestamp, view count and comment count. Secret/blinded/deleted posts keep their lock/translucency overlays and badges. |
+| **Thumbnail + summary list** | `board/index` renders as a 1-column list for `webzine` boards — a fixed 80×80px square thumbnail on the left, and on the right: title (with notice/category/new badges, truncated), a 150-character plain-text summary, author, timestamp, view count and comment count. Secret/blinded/deleted posts keep their lock/translucency overlays and badges. |
+| **Configurable no-thumbnail rendering** (1.1.0) | An admin settings page picks what a post with no thumbnail shows: **summary only** (default — no thumbnail area at all, text uses the full row width), the **default placeholder** box, or an admin-supplied **fallback image** (uploaded here, or an existing image URL). |
+| **Broken-thumbnail fallback** (1.1.0) | If a post *has* a thumbnail but the image fails to load (e.g. an external image was deleted), the row falls back to the same setting. If the fallback image itself fails, the row falls back to summary only. |
 | **External image thumbnails** | The core only uses the first *internal* (self-uploaded) image as a post's thumbnail. On `webzine` boards, a first internal image still wins if present, but if the post has none, the first safe `http(s)` external image in the body is used instead. `data:`/`javascript:`/`blob:` schemes are still rejected. Other board types are unaffected. |
 
-No add-on database tables, no add-on API routes — the thumbnail
-(`content_thumbnail_url`, computed by `sirsoft-board` at save time) and
-150-character summary (`content_preview`, computed via a DB-level
-`SUBSTRING`) are already part of `sirsoft-board`'s core list API response for
-every board type; this plugin only changes how they're laid out.
+No add-on database tables — the thumbnail (`content_thumbnail_url`, computed
+by `sirsoft-board` at save time) and 150-character summary
+(`content_preview`, computed via a DB-level `SUBSTRING`) are already part of
+`sirsoft-board`'s core list API response for every board type; this plugin
+only changes how they're laid out. Since 1.1.0 the add-on serves three small
+routes of its own (fallback-image upload / fallback-image serving / the
+broken-thumbnail fallback script) — see **Settings** below.
+
+## Settings
+
+Admin → **Webzine Board Add-on** (`/admin/plugins/g7-webzine-addon/settings`).
+
+### When no thumbnail
+
+| Value | Behaviour |
+|---|---|
+| **Summary only** (default) | The thumbnail area is not rendered at all; the title and summary use the full row width. |
+| **Default placeholder** | The grey "no image" box (icon + label). |
+| **Fallback image** | An image you configure below, cropped square (`object-fit: cover`) exactly like a real thumbnail. |
+
+The public default is **summary only** — that is this add-on's original
+intent. (1.0.0 shipped the placeholder unconditionally, because the list
+markup was adapted from the core card layout and the placeholder came along
+with it.)
+
+### Fallback image
+
+Two mutually exclusive sources:
+
+- **Upload** (recommended) — the file is stored in this plugin's own storage
+  and served from `/api/plugins/g7-webzine-addon/fallback-image/{hash}`.
+  The `{hash}` is the file's content hash, so replacing the image changes
+  the URL and busts every browser/CDN cache immediately; the response
+  carries a one-year `immutable` cache header. Replacing and saving deletes
+  the previous file.
+- **Image URL** — any `https://` / `http://` address, or a site-internal
+  path starting with `/`. The settings screen warns that an external
+  original can be deleted or changed out from under you; if it breaks, rows
+  fall back to summary only.
+
+An **alt text** field is offered; when left empty the site name is used.
+
+#### Upload security
+
+- Allowed: `png`, `jpg`/`jpeg`, `webp`, `gif`. **SVG is rejected** — it can
+  carry script, and this image is rendered as a plain `<img>` on every
+  visitor's list page.
+- Three independent checks: the client-side extension, the real MIME type
+  sniffed from the file's bytes, and a `getimagesize()` decode whose
+  detected type must match the extension. A `.png` that is really an SVG,
+  an HTML file or a text file is rejected by the second and third checks.
+- Maximum size 2MB.
+- The stored filename is **generated by the server** (UUID + verified
+  extension); the original filename is kept only as a display label.
+- Upload requires the core `core.plugins.update` permission (the same one
+  that gates saving plugin settings). Settings read/write go through the
+  core plugin-settings API, which enforces the same permission. Only the
+  fallback image's public URL ever reaches the front end — no setting value
+  is exposed to the browser.
+
+### Note on saving
+
+Saving these settings bumps the core extension cache version (the same
+mechanism the core uses when a layout or extension changes), so the change
+shows up after a single refresh instead of waiting out the layout response's
+cache lifetime. As with activating any plugin, that schedules a republish of
+the static extension bundle, so the first request after saving can be
+slightly slower.
 
 ## Requirements
 
@@ -60,7 +125,9 @@ Admin → Plugins → g7-webzine-addon → Install → Activate.
 
 Admin → Boards → Create (or edit an existing board) → set **Type** to
 **Webzine** (웹진형). The board's list page immediately renders as the
-thumbnail list; nothing else needs configuring.
+thumbnail list. Nothing else needs configuring — see **Settings** above if
+you want posts without a thumbnail to show a placeholder or a fallback image
+instead of just their summary.
 
 ## Uninstalling
 
@@ -70,7 +137,8 @@ php artisan plugin:uninstall g7-webzine-addon
 
 Uninstall is refused while a board still uses the `webzine` type — change or
 delete that board first. There is no `--delete-data` variant since this
-plugin owns no database tables.
+plugin owns no database tables; uninstalling does delete any uploaded
+fallback image from the plugin's storage.
 
 ## Known issues
 
@@ -83,6 +151,19 @@ plugin owns no database tables.
 - **External-image thumbnails are `webzine`-only by design**, not a general
   toggle. Every other board type keeps the core's original same-origin-only
   thumbnail rule unchanged.
+- **The no-thumbnail setting is site-wide**, not per board. The `board/index`
+  layout is built once and shared by every board, so one setting governs all
+  `webzine` boards.
+- **The broken-thumbnail fallback needs JavaScript.** Layout JSON has no
+  `error` event type, so a tiny script (served by the add-on, injected into
+  the list layout's `scripts`) hides images that fail to load. Everything
+  else — including which of the three modes applies — is rendered
+  server-side and works without it. With scripting off, a dead thumbnail
+  shows the browser's own broken-image box, as it did before 1.1.0.
+- **The placeholder / fallback image sits *under* the thumbnail**, always in
+  the DOM, so the script only ever has to hide the failed image rather than
+  build new markup. Both layers carry `aria-hidden` so screen readers do not
+  read them out on rows that have a working thumbnail.
 - **The layout splice matches literal strings** in `sirsoft-basic`'s compiled
   `board/index` layout (the board-type dispatch branch's `if` condition). If
   a future `sirsoft-basic` update rephrases that condition, the match can

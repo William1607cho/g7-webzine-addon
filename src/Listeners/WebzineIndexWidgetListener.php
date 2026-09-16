@@ -4,6 +4,7 @@ namespace Plugins\G7\Webzine\Addon\Listeners;
 
 use App\Contracts\Extension\HookListenerInterface;
 use Illuminate\Support\Facades\Log;
+use Plugins\G7\Webzine\Addon\Support\WebzineSettings;
 
 /**
  * webzine 게시판 목록(`board/index`) 화면을 1열 리스트(좌측 정사각 썸네일+우측 텍스트)
@@ -46,6 +47,18 @@ class WebzineIndexWidgetListener implements HookListenerInterface
 {
     /** webzine 분기 노드의 안정 식별자 (멱등 방어) */
     private const WEBZINE_BRANCH_ID = 'g7_webzine_addon_list_branch';
+
+    /** 썸네일 폴백 스크립트의 `scripts` 엔트리 id (중복 로드 방지 — 엔진이 이 id 로 판단) */
+    private const FALLBACK_SCRIPT_ID = 'g7_webzine_addon_thumb_fallback';
+
+    /** 목록 썸네일 `<img>` 마커 클래스 (폴백 스크립트가 이 클래스로 대상을 찾는다) */
+    private const THUMB_CLASS = 'g7-webzine-thumb';
+
+    /** 대체 이미지 `<img>` 마커 클래스 */
+    private const FALLBACK_CLASS = 'g7-webzine-fallback';
+
+    /** 썸네일 박스 Div 마커 클래스 (폴백 시 영역째 감출 대상) */
+    private const THUMB_BOX_CLASS = 'g7-webzine-thumbbox';
 
     /** fallback 분기 `if` 조건에서 찾는 앵커 문자열 (rewrite 대상 판별 + 치환 대상) */
     private const FALLBACK_ANCHOR = "!['gallery','card'].includes(";
@@ -92,7 +105,45 @@ class WebzineIndexWidgetListener implements HookListenerInterface
             Log::error('[g7-webzine-addon] board/index 유형 분기 앵커(_type_renderer basic-fallback if 조건)를 찾지 못해 webzine 카드 레이아웃을 주입하지 못했습니다. sirsoft-basic 레이아웃 구조 변경 여부 확인 필요.', [
                 'template_id' => $templateId,
             ]);
+
+            return $layout;
         }
+
+        return $this->injectFallbackScript($layout);
+    }
+
+    /**
+     * 썸네일 로드 실패 폴백 스크립트를 레이아웃 `scripts` 에 추가한다 (v1.1.0 신설).
+     *
+     * 레이아웃 JSON 액션에는 `error` 이벤트 타입이 없어, "썸네일 URL 은 있는데 그 이미지가
+     * 죽은" 경우를 JSON 만으로는 감지할 수 없다. 코어 엔진의 `scripts` 로더(같은 출처
+     * 절대경로 허용)로 아주 작은 스크립트 하나를 붙여 그 경우만 처리한다 — 스크립트가
+     * 하는 일은 실패한 `<img>` 를 감추는 것뿐이고, 무엇이 대신 보일지는 이 리스너가 이미
+     * 서버에서 깔아 둔 바탕 레이어가 결정한다
+     * ({@see \Plugins\G7\Webzine\Addon\Http\Controllers\ThumbFallbackScriptController}).
+     *
+     * `?v=` 지문은 설정이 바뀌면 값이 달라져 새 스크립트를 받게 한다.
+     *
+     * @param  array<string, mixed>  $layout
+     * @return array<string, mixed>
+     */
+    private function injectFallbackScript(array $layout): array
+    {
+        $scripts = isset($layout['scripts']) && is_array($layout['scripts']) ? $layout['scripts'] : [];
+
+        foreach ($scripts as $script) {
+            if (is_array($script) && ($script['id'] ?? null) === self::FALLBACK_SCRIPT_ID) {
+                return $layout; // 이미 붙어 있음 (멱등)
+            }
+        }
+
+        $scripts[] = [
+            'src' => '/api/plugins/g7-webzine-addon/thumb-fallback.js?v='.WebzineSettings::fingerprint(),
+            'id' => self::FALLBACK_SCRIPT_ID,
+            'async' => true,
+        ];
+
+        $layout['scripts'] = $scripts;
 
         return $layout;
     }
@@ -199,6 +250,210 @@ class WebzineIndexWidgetListener implements HookListenerInterface
     }
 
     /**
+     * webzine 목록 분기 노드 — 관리자 설정("썸네일 없을 때 표시")을 반영해 완성한다.
+     *
+     * v1.0.0 까지는 {@see self::webzineBranchTemplate()} 이 돌려주는 리터럴이 곧 최종
+     * 결과였고, 썸네일이 없는 글에는 항상 "이미지 없음" 자리표시자 박스가 나왔다
+     * (원래 사양은 "썸네일 없으면 요약만"이었는데, 카드형 레이아웃을 복제해 오면서
+     * 그 자리표시자까지 함께 딸려 온 것). v1.1.0 부터는 그 리터럴을 **바탕 틀**로만
+     * 쓰고, 썸네일 영역만 설정에 따라 다시 조립한다.
+     *
+     * @return array<string, mixed>
+     */
+    private function webzineBranchNode(): array
+    {
+        $settings = WebzineSettings::all();
+
+        return $this->applyThumbnailMode(
+            $this->webzineBranchTemplate(),
+            WebzineSettings::effectiveMode($settings),
+            WebzineSettings::fallbackImageUrl($settings),
+            WebzineSettings::altText($settings),
+        );
+    }
+
+    /**
+     * 트리에서 좌측 정사각 썸네일 박스를 찾아 설정 모드에 맞게 교체한다.
+     *
+     * 판별은 이 애드온이 직접 써 넣은 className 리터럴(`relative w-20 h-20`)로 한다 —
+     * 코어 레이아웃이 아니라 {@see self::webzineBranchTemplate()} 자신의 산출물이므로
+     * 앵커가 어긋날 여지가 없다.
+     *
+     * @param  array<string, mixed>  $node
+     * @param  string  $mode  적용할 모드 (summary|placeholder|image)
+     * @param  string|null  $fallbackUrl  대체 이미지 URL (image 모드에서만 non-null)
+     * @param  string  $alt  대체 이미지의 대체 텍스트
+     * @return array<string, mixed>
+     */
+    private function applyThumbnailMode(array $node, string $mode, ?string $fallbackUrl, string $alt): array
+    {
+        if ($this->isThumbnailBox($node)) {
+            return $this->buildThumbnailBox($node, $mode, $fallbackUrl, $alt);
+        }
+
+        if (isset($node['children']) && is_array($node['children'])) {
+            foreach ($node['children'] as $i => $child) {
+                if (is_array($child)) {
+                    $node['children'][$i] = $this->applyThumbnailMode($child, $mode, $fallbackUrl, $alt);
+                }
+            }
+        }
+
+        return $node;
+    }
+
+    /**
+     * 좌측 정사각 썸네일 박스 판별.
+     */
+    private function isThumbnailBox(array $node): bool
+    {
+        if (($node['name'] ?? null) !== 'Div') {
+            return false;
+        }
+
+        $className = $node['props']['className'] ?? '';
+
+        return is_string($className) && str_contains($className, 'relative w-20 h-20');
+    }
+
+    /**
+     * 썸네일 박스를 모드에 맞게 다시 조립한다.
+     *
+     * **겹쳐 그리기 구조가 핵심이다.** 자리표시자/대체 이미지는 `if` 로 썸네일과
+     * 배타적으로 갈리는 형제가 아니라, 박스 바닥에 항상 깔리는 **바탕 레이어**(absolute
+     * inset-0)이고 썸네일 `<img>` 가 그 위를 덮는다. 덕분에
+     *
+     *  - 썸네일이 없으면 → 바탕이 그대로 보인다 (서버 렌더만으로 완결, JS 불필요)
+     *  - 썸네일이 있는데 로드에 실패하면 → 폴백 스크립트가 그 `<img>` 하나만 감추면
+     *    바탕이 드러난다 (DOM 을 새로 만들지 않으므로 렌더 트리와 경합하지 않는다)
+     *
+     * 바탕 레이어는 썸네일이 있는 행에도 (가려진 채) 항상 DOM 에 들어가므로 `aria-hidden`
+     * 을 붙인다 — 그러지 않으면 스크린리더가 행마다 "이미지 없음"(또는 대체 이미지의 alt)
+     * 을 제목 앞에 덧붙여 읽는다. 행 전체가 이미 제목을 접근 가능한 이름으로 갖고 있어
+     * 두 바탕 레이어는 장식 요소로 보는 것이 맞다. 대체 이미지의 `alt` 는 그대로 두어,
+     * 이미지가 깨졌을 때 눈에 보이는 대체 문구로는 계속 작동한다.
+     *
+     * "요약만" 모드는 바탕 레이어가 없으므로, 박스 자체에 `if: post?.thumbnail` 을 걸어
+     * 썸네일이 없는 글에서는 영역째 사라지게 한다(텍스트가 행 전체 폭을 쓴다). 이때
+     * 블라인드/비밀글 오버레이도 함께 사라지지만, 두 상태는 제목 행의 아이콘·배지로
+     * 이미 표시되므로 정보가 유실되지 않는다.
+     *
+     * @param  array<string, mixed>  $box  템플릿의 원본 썸네일 박스
+     * @param  string  $mode  적용할 모드
+     * @param  string|null  $fallbackUrl  대체 이미지 URL
+     * @param  string  $alt  대체 이미지의 대체 텍스트
+     * @return array<string, mixed>
+     */
+    private function buildThumbnailBox(array $box, string $mode, ?string $fallbackUrl, string $alt): array
+    {
+        $thumbnailImg = null;
+        $placeholder = null;
+        $overlays = [];
+
+        foreach ($box['children'] ?? [] as $child) {
+            if (! is_array($child)) {
+                continue;
+            }
+
+            $if = (string) ($child['if'] ?? '');
+
+            if (str_contains($if, '!post?.thumbnail')) {
+                $placeholder = $child;
+
+                continue;
+            }
+
+            if (($child['name'] ?? null) === 'Img' && str_contains($if, 'post?.thumbnail')) {
+                $thumbnailImg = $child;
+
+                continue;
+            }
+
+            $overlays[] = $child; // 블라인드/삭제 · 비밀글 잠금 오버레이 (원본 그대로)
+        }
+
+        $children = [];
+        $base = $this->baseLayerNode($mode, $placeholder, $fallbackUrl, $alt);
+
+        if ($base !== null) {
+            $children[] = $base;
+        }
+
+        if ($thumbnailImg !== null) {
+            // 바탕 레이어가 깔린 모드에서는 썸네일에 박스와 같은 불투명 배경을 준다.
+            // 투명 PNG 썸네일(로고 등)은 그러지 않으면 아래 자리표시자 글자·대체 이미지가
+            // 비쳐 보인다(실측: 파이썬 로고 글에서 "이미지 없음" 이 가장자리로 새어 나옴).
+            $thumbnailImg['props']['className'] = $this->squashSpaces(
+                ($base !== null ? 'absolute inset-0 bg-gray-100 dark:bg-gray-900 ' : '')
+                .'w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 '
+                .self::THUMB_CLASS
+            );
+            $children[] = $thumbnailImg;
+        }
+
+        foreach ($overlays as $overlay) {
+            $children[] = $overlay;
+        }
+
+        $box['children'] = $children;
+        $box['props']['className'] = $this->squashSpaces(($box['props']['className'] ?? '').' '.self::THUMB_BOX_CLASS);
+        $box['comment'] = '좌측 정사각 썸네일 (g7-webzine-addon 설정 "썸네일 없을 때 표시" = '.$mode.')';
+
+        if ($mode === WebzineSettings::MODE_SUMMARY) {
+            // 요약만: 썸네일이 없으면 영역 자체를 렌더링하지 않는다.
+            $box['if'] = '{{post?.thumbnail}}';
+        } else {
+            unset($box['if']);
+        }
+
+        return $box;
+    }
+
+    /**
+     * className 조립 부산물인 연속 공백을 하나로 줄인다.
+     */
+    private function squashSpaces(string $className): string
+    {
+        return trim(preg_replace('/\s+/', ' ', $className) ?? '');
+    }
+
+    /**
+     * 썸네일 아래에 깔리는 바탕 레이어 노드 (없으면 null = "요약만" 모드).
+     *
+     * @param  array<string, mixed>|null  $placeholder  템플릿의 원본 자리표시자 노드
+     * @return array<string, mixed>|null
+     */
+    private function baseLayerNode(string $mode, ?array $placeholder, ?string $fallbackUrl, string $alt): ?array
+    {
+        if ($mode === WebzineSettings::MODE_PLACEHOLDER && $placeholder !== null) {
+            unset($placeholder['if']);
+            $placeholder['comment'] = '기본 자리표시자 (바탕 레이어 — 썸네일이 없거나 로드에 실패하면 드러난다)';
+            $placeholder['props']['className'] = $this->squashSpaces(
+                'absolute inset-0 '.str_replace('w-full h-full', '', (string) ($placeholder['props']['className'] ?? ''))
+            );
+            $placeholder['props']['aria-hidden'] = 'true';
+
+            return $placeholder;
+        }
+
+        if ($mode === WebzineSettings::MODE_IMAGE && $fallbackUrl !== null) {
+            return [
+                'comment' => '관리자 지정 대체 이미지 (바탕 레이어 — 썸네일이 없거나 로드에 실패하면 드러난다)',
+                'type' => 'basic',
+                'name' => 'Img',
+                'props' => [
+                    'src' => $fallbackUrl,
+                    'alt' => $alt,
+                    'aria-hidden' => 'true',
+                    'className' => 'absolute inset-0 w-full h-full object-cover '.self::FALLBACK_CLASS,
+                ],
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * webzine 목록 분기 노드 (1열 리스트: 좌측 정사각 썸네일 + 우측 텍스트).
      *
      * 최상위 헤더(게시판명/설명/글쓰기 버튼)·필터 바(카테고리/검색/삭제글 포함 토글)·
@@ -229,7 +484,7 @@ class WebzineIndexWidgetListener implements HookListenerInterface
      *
      * @return array<string, mixed>
      */
-    private function webzineBranchNode(): array
+    private function webzineBranchTemplate(): array
     {
         return [
             'comment' => 'webzine 유형 (g7-webzine-addon 이 런타임에 삽입 — sirsoft-basic 코어 파일 아님)',
