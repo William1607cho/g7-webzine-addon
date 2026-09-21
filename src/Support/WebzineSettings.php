@@ -79,7 +79,9 @@ class WebzineSettings
      *     fallback_upload_name: string,
      *     fallback_upload_version: string,
      *     fallback_image_url: string,
-     *     fallback_alt: string
+     *     fallback_alt: string,
+     *     fallback_thumb_path: string,
+     *     fallback_thumb_version: string
      * }
      */
     public static function all(): array
@@ -98,6 +100,8 @@ class WebzineSettings
             'fallback_upload_version' => self::safeVersion((string) ($raw['fallback_upload_version'] ?? '')),
             'fallback_image_url' => self::safeUrl((string) ($raw['fallback_image_url'] ?? '')),
             'fallback_alt' => self::safeAlt((string) ($raw['fallback_alt'] ?? '')),
+            'fallback_thumb_path' => self::safeStoragePath((string) ($raw['fallback_thumb_path'] ?? '')),
+            'fallback_thumb_version' => self::safeVersion((string) ($raw['fallback_thumb_version'] ?? '')),
         ];
     }
 
@@ -146,6 +150,34 @@ class WebzineSettings
     }
 
     /**
+     * **목록에 쓸** 대체 이미지 URL (1.2.0 신설).
+     *
+     * 목록 썸네일 박스는 80×80 CSS px 이라 원본을 그대로 보내면 낭비다. 저장 시점에
+     * 만들어 둔 가로 240 파생본이 있으면 그 주소를, 없으면 원본 주소를 돌려준다
+     * ({@see \Plugins\G7\Webzine\Addon\Services\FallbackThumbBuilder}).
+     *
+     * 파생본이 없는 경우는 셋이다 — imagick 이 없는 사이트, 원본 가로가 240 이하,
+     * 아직 파생본 생성 명령을 돌리지 않은 기존 설치. 어느 쪽이든 **원본 주소로 폴백**하며
+     * 화면은 1.1.0 과 같다.
+     *
+     * URL 방식(`fallback_source = url`)은 파일이 우리 저장소에 없으므로 파생본이 없다.
+     *
+     * @param  array<string, mixed>|null  $settings  미리 읽어 둔 정규화 설정
+     */
+    public static function listImageUrl(?array $settings = null): ?string
+    {
+        $settings ??= self::all();
+
+        if ($settings['fallback_source'] === self::SOURCE_UPLOAD
+            && $settings['fallback_thumb_path'] !== ''
+            && $settings['fallback_thumb_version'] !== '') {
+            return self::SERVE_PREFIX.$settings['fallback_thumb_version'];
+        }
+
+        return self::fallbackImageUrl($settings);
+    }
+
+    /**
      * 대체 이미지의 대체 텍스트(alt). 비어 있으면 사이트명을 쓴다.
      *
      * @param  array<string, mixed>|null  $settings  미리 읽어 둔 정규화 설정
@@ -179,6 +211,7 @@ class WebzineSettings
         return substr(sha1(json_encode([
             self::effectiveMode($settings),
             self::fallbackImageUrl($settings),
+            self::listImageUrl($settings),
         ])), 0, 12);
     }
 

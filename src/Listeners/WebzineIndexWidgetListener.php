@@ -60,6 +60,35 @@ class WebzineIndexWidgetListener implements HookListenerInterface
     /** 썸네일 박스 Div 마커 클래스 (폴백 시 영역째 감출 대상) */
     private const THUMB_BOX_CLASS = 'g7-webzine-thumbbox';
 
+    /**
+     * 바탕 레이어(자리표시자·대체 이미지) 표식 (1.2.0 신설).
+     *
+     * 1.1.0 에서는 바탕이 **모든 행에 항상** 깔려 있어 폴백 스크립트가 존재 여부를 볼
+     * 필요가 없었다. 1.2.0 부터 바탕은 **썸네일이 없는 행에만** 그려지므로, 스크립트가
+     * "이 박스에 바탕이 있는가" 를 실제로 확인해야 한다.
+     */
+    private const BASE_CLASS = 'g7-webzine-base';
+
+    /**
+     * 목록 이미지 공통 속성 (1.2.0 신설).
+     *
+     * 썸네일 박스는 `w-20 h-20` = **80×80 CSS px** 이다. `width`/`height` 를 그 값으로
+     * 박아 레이아웃 시프트를 없앤다(실제 파일은 240px 이지만 이 속성은 자리 확보용이고
+     * `object-cover` 가 정사각을 강제한다).
+     *
+     * 봇 SSR 은 `loading`·`decoding` 을 허용 속성 목록에서 걸러내지만(템플릿
+     * `seo-config.json`), 봇은 지연 로딩을 하지 않으므로 문제가 되지 않는다.
+     * `width`/`height` 는 허용 목록에 있어 SSR 에도 남는다.
+     *
+     * @var array<string, string>
+     */
+    private const IMG_ATTRS = [
+        'loading' => 'lazy',
+        'decoding' => 'async',
+        'width' => '80',
+        'height' => '80',
+    ];
+
     /** fallback 분기 `if` 조건에서 찾는 앵커 문자열 (rewrite 대상 판별 + 치환 대상) */
     private const FALLBACK_ANCHOR = "!['gallery','card'].includes(";
 
@@ -267,7 +296,9 @@ class WebzineIndexWidgetListener implements HookListenerInterface
         return $this->applyThumbnailMode(
             $this->webzineBranchTemplate(),
             WebzineSettings::effectiveMode($settings),
-            WebzineSettings::fallbackImageUrl($settings),
+            // 1.2.0: 목록에는 80×80 용 파생본을 쓴다. 파생본이 없으면
+            // listImageUrl() 이 원본 주소로 폴백한다.
+            WebzineSettings::listImageUrl($settings),
             WebzineSettings::altText($settings),
         );
     }
@@ -383,11 +414,14 @@ class WebzineIndexWidgetListener implements HookListenerInterface
             // 바탕 레이어가 깔린 모드에서는 썸네일에 박스와 같은 불투명 배경을 준다.
             // 투명 PNG 썸네일(로고 등)은 그러지 않으면 아래 자리표시자 글자·대체 이미지가
             // 비쳐 보인다(실측: 파이썬 로고 글에서 "이미지 없음" 이 가장자리로 새어 나옴).
+            // 1.2.0: 바탕이 더는 아래에 깔려 있지 않으므로(조건 분기) 불투명 배경이 필요
+            // 없다. 투명 PNG 썸네일이 비쳐 보일 대상 자체가 없고, 박스의
+            // `bg-gray-100 dark:bg-gray-900` 이 그대로 뒤를 받는다.
             $thumbnailImg['props']['className'] = $this->squashSpaces(
-                ($base !== null ? 'absolute inset-0 bg-gray-100 dark:bg-gray-900 ' : '')
-                .'w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 '
+                'w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 '
                 .self::THUMB_CLASS
             );
+            $thumbnailImg['props'] += self::IMG_ATTRS;
             $children[] = $thumbnailImg;
         }
 
@@ -426,27 +460,32 @@ class WebzineIndexWidgetListener implements HookListenerInterface
     private function baseLayerNode(string $mode, ?array $placeholder, ?string $fallbackUrl, string $alt): ?array
     {
         if ($mode === WebzineSettings::MODE_PLACEHOLDER && $placeholder !== null) {
-            unset($placeholder['if']);
-            $placeholder['comment'] = '기본 자리표시자 (바탕 레이어 — 썸네일이 없거나 로드에 실패하면 드러난다)';
-            $placeholder['props']['className'] = $this->squashSpaces(
-                'absolute inset-0 '.str_replace('w-full h-full', '', (string) ($placeholder['props']['className'] ?? ''))
-            );
+            // 1.2.0: 템플릿의 `if`(`{{!post?.thumbnail}}`)를 **그대로 둔다** — 썸네일이
+            // 있는 행에는 자리표시자를 아예 그리지 않는다.
+            $placeholder['comment'] = '기본 자리표시자 (썸네일이 없는 행에만 그린다 — 1.2.0)';
             $placeholder['props']['aria-hidden'] = 'true';
+            $placeholder['props']['className'] = $this->squashSpaces(
+                (string) ($placeholder['props']['className'] ?? '').' '.self::BASE_CLASS
+            );
 
             return $placeholder;
         }
 
         if ($mode === WebzineSettings::MODE_IMAGE && $fallbackUrl !== null) {
             return [
-                'comment' => '관리자 지정 대체 이미지 (바탕 레이어 — 썸네일이 없거나 로드에 실패하면 드러난다)',
+                'comment' => '관리자 지정 대체 이미지 (썸네일이 없는 행에만 그린다 — 1.2.0)',
                 'type' => 'basic',
                 'name' => 'Img',
+                // 1.1.0 은 이것을 모든 행의 바탕으로 깔아, 썸네일에 가려 보이지도 않는
+                // 이미지를 목록마다 내려받게 했다(blog 실측 135,548 B). 조건을 걸어
+                // 썸네일이 없는 행에만 넣는다.
+                'if' => '{{!post?.thumbnail}}',
                 'props' => [
                     'src' => $fallbackUrl,
                     'alt' => $alt,
                     'aria-hidden' => 'true',
-                    'className' => 'absolute inset-0 w-full h-full object-cover '.self::FALLBACK_CLASS,
-                ],
+                    'className' => 'w-full h-full object-cover '.self::FALLBACK_CLASS.' '.self::BASE_CLASS,
+                ] + self::IMG_ATTRS,
             ];
         }
 
@@ -1221,7 +1260,7 @@ array (
                                     'name' => 'Span',
                                     'if' => '{{post?.comment_count > 0}}',
                                     'props' => [
-                                      'className' => 'inline-flex items-center gap-1 text-xs font-medium {{(post?.status === \'blinded\' || post?.deleted_at) ? \'text-gray-400 dark:text-gray-500\' : \'text-blue-600 dark:text-blue-400\'}}',
+                                      'className' => 'inline-flex items-center gap-1 text-xs font-medium {{(post?.status === \'blinded\' || post?.deleted_at) ? \'text-gray-400 dark:text-gray-500\' : \'text-orange-700 dark:text-orange-600\'}}',
                                     ],
                                     'children' => [
                                       0 => [

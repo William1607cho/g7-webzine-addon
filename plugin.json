@@ -5,7 +5,7 @@
         "ko": "웹진게시판 애드온",
         "en": "Webzine Board Add-on"
     },
-    "version": "1.1.0",
+    "version": "1.2.0",
     "license": "MIT",
     "description": {
         "ko": "sirsoft-board 게시판에 웹진형(webzine) 유형을 더해, 목록 화면을 좌측 정사각 썸네일(본문 첫 이미지, 자체 업로드+외부 이미지 모두 허용)+우측 텍스트(본문 요약 150자 등) 1열 리스트로 표시하는 애드온입니다. sirsoft-board 와 템플릿(sirsoft-basic)은 전혀 수정하지 않으며, 애드온 전용 board_type 등록·레이아웃 확장·필터 훅으로만 동작합니다.",

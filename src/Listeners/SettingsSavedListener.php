@@ -79,9 +79,16 @@ class SettingsSavedListener implements HookListenerInterface
     private function pruneUnusedImages(): void
     {
         try {
-            $keep = WebzineSettings::all()['fallback_upload_path'];
+            $settings = WebzineSettings::all();
 
-            $deleted = app(FallbackImageService::class)->pruneExcept($keep !== '' ? [$keep] : []);
+            // 원본과 목록용 파생본(1.2.0)을 모두 남긴다. 파생본을 빠뜨리면 설정을 저장할
+            // 때마다 방금 만든 파생본이 지워져 목록이 원본 주소로 되돌아간다.
+            $keep = array_values(array_filter([
+                $settings['fallback_upload_path'],
+                $settings['fallback_thumb_path'],
+            ]));
+
+            $deleted = app(FallbackImageService::class)->pruneExcept($keep);
 
             if ($deleted > 0) {
                 Log::info('[g7-webzine-addon] 사용하지 않는 대체 이미지 파일 정리', ['deleted' => $deleted]);

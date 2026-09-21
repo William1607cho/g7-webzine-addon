@@ -93,10 +93,58 @@ cache lifetime. As with activating any plugin, that schedules a republish of
 the static extension bundle, so the first request after saving can be
 slightly slower.
 
+## List summary recalculation (temporary)
+
+Webzine board lists rebuild each post's summary from its body instead of using the one the core
+sends. The core builds summaries from the first 200 characters of the **raw HTML**, so a post that
+opens with an image spends that budget on `<figure class="image"><img …></figure>` and gets an
+empty summary. Leading `&nbsp;` survives the core's whitespace cleanup, and the ellipsis is added
+after the 150-character cut, making the result 153.
+
+**This is a workaround for a core defect and is meant to be removed.** It is one middleware plus
+one pure class. When the core is fixed, delete the `getMiddleware()` entry in `plugin.php` and both
+files — nothing else was touched.
+
+What it does and does not touch:
+
+- Only the visitor board-list route, and only `webzine` boards. The admin list is untouched.
+- Only posts the core already published a summary for: secret, blinded and deleted posts keep the
+  core's value. The plugin never re-decides permissions — it reads the flags the response already
+  carries.
+- One extra query per list response, regardless of how many posts are on the page.
+- Bot SSR calls the same route internally, so it gets the same summaries.
+
+## Fallback image derivative
+
+The fallback image is drawn in an 80x80 CSS px box, but the stored original is usually much larger.
+Since 1.2.0 a **240px-wide WebP derivative** is built when the image is saved and the list uses it.
+The original is kept — the settings preview and image replacement still use it.
+
+The fallback is also drawn **only on rows that have no thumbnail** now. Before 1.2.0 it sat under
+every row as a base layer, so a row with a real thumbnail still downloaded it, fully hidden.
+
+### If you upgraded from 1.1.0
+
+An image saved under 1.1.0 has no derivative. Build it once:
+
+```
+php artisan g7-webzine-addon:build-fallback-thumb --dry-run
+php artisan g7-webzine-addon:build-fallback-thumb
+```
+
+This is optional. Without it the list serves the original address and looks exactly as before.
+
+- Needs **imagick**. This environment's GD is a bundled build with no WebP encoder.
+  Without imagick no derivative is built, a warning is logged, and the original is used.
+- An original 240px wide or narrower is left alone — nothing is upscaled.
+- Derivatives are never built on a public request. Only the settings save and this command build them.
+
 ## Requirements
 
 - Gnuboard7 `>= 7.0.10`
 - Module **`sirsoft-board >= 1.1.2`**
+- PHP **imagick** — only for the fallback image derivative (1.2.0). Everything else works without
+  it; the list simply serves the fallback original.
 - Template **`sirsoft-basic >= 1.1.4`** (not a hard-enforced dependency — the
   core plugin manager only declares module/plugin dependencies, not
   templates — but the layout-splice logic matches literal strings in

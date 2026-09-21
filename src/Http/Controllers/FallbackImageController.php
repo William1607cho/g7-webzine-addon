@@ -21,6 +21,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * `{version}` 은 파일 내용 해시다. 해시가 URL 에 들어 있으므로 이미지를 교체하면 URL 이
  * 통째로 바뀌고, 살아 있는 URL 은 내용이 고정이라 1년 immutable 캐시가 안전하다.
  *
+ * 1.2.0 부터 **목록용 파생본**(가로 240 WebP)도 같은 경로로 서빙한다. 버전 해시가 다르므로
+ * 원본과 주소가 갈리고, 캐시도 따로 잡힌다.
+ *
  * 저장된 버전이면 경로를 바로 열고, 아니면 저장소에서 같은 해시의 파일을 찾는다 —
  * 관리자가 업로드만 하고 아직 저장하지 않은 이미지를 설정 화면 미리보기가 부르는
  * 경우다. 정리 로직이 저장소를 한두 개로 유지하므로 그 탐색은 사실상 고정 비용이고,
@@ -41,9 +44,14 @@ class FallbackImageController extends PublicBaseController
     {
         $settings = WebzineSettings::all();
 
-        $path = $settings['fallback_upload_version'] === $version && $version !== ''
-            ? $settings['fallback_upload_path']
-            : $this->imageService->findByVersion($version);
+        $path = match (true) {
+            // 목록용 파생본 (1.2.0) — 목록이 가장 자주 때리는 주소라 먼저 본다.
+            $version !== '' && $settings['fallback_thumb_version'] === $version
+                => $settings['fallback_thumb_path'],
+            $version !== '' && $settings['fallback_upload_version'] === $version
+                => $settings['fallback_upload_path'],
+            default => $this->imageService->findByVersion($version),
+        };
 
         if ($path === null || $path === '' || ! $this->imageService->exists($path)) {
             return ResponseHelper::notFound('messages.fallback.not_found', domain: 'g7-webzine-addon');

@@ -45,9 +45,15 @@ class FallbackImageAdminController extends AdminBaseController
         try {
             $meta = $this->imageService->store($request->file('fallback_image'));
 
+            $current = WebzineSettings::all();
+
+            // 방금 올린 원본·파생본과 현재 설정이 가리키는 원본·파생본만 남긴다.
+            // 파생본 경로를 빠뜨리면 방금 만든 파생본이 곧바로 지워진다.
             $this->imageService->pruneExcept([
                 $meta['path'],
-                WebzineSettings::all()['fallback_upload_path'],
+                $meta['thumb_path'],
+                $current['fallback_upload_path'],
+                $current['fallback_thumb_path'],
             ]);
         } catch (\Throwable $e) {
             Log::error('[g7-webzine-addon] 대체 이미지 업로드 실패', ['error' => $e->getMessage()]);
