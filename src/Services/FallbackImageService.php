@@ -25,7 +25,8 @@ class FallbackImageService
      * @param  StorageInterface  $storage  플러그인 스토리지 드라이버(BasePluginServiceProvider 주입)
      */
     public function __construct(
-        protected StorageInterface $storage
+        protected StorageInterface $storage,
+        protected FallbackThumbBuilder $thumbBuilder,
     ) {}
 
     /**
@@ -34,8 +35,12 @@ class FallbackImageService
      * 호출 전에 {@see \Plugins\G7\Webzine\Addon\Http\Requests\FallbackImageUploadRequest}
      * 가 확장자·실제 MIME·크기를 모두 검증한다.
      *
+     * 1.2.0 부터 목록용 파생본(가로 240 WebP)도 함께 만든다. 만들지 못한 경우
+     * (imagick 없음·원본이 240 이하)에는 `thumb_*` 가 빈 문자열이고, 목록은 원본 주소를 쓴다.
+     *
      * @param  UploadedFile  $file  검증이 끝난 업로드 파일
-     * @return array{path: string, version: string, name: string, mime: string, url: string}
+     * @return array{path: string, version: string, name: string, mime: string, url: string,
+     *               thumb_path: string, thumb_version: string, thumb_url: string}
      */
     public function store(UploadedFile $file): array
     {
@@ -48,17 +53,24 @@ class FallbackImageService
 
         $this->storage->put(WebzineSettings::STORAGE_CATEGORY, $path, $binary);
 
+        $thumb = $this->thumbBuilder->build($path);
+
         return [
             'path' => $path,
             'version' => $version,
             'name' => $file->getClientOriginalName(),
             'mime' => WebzineSettings::MIME_MAP[$extension],
             'url' => WebzineSettings::SERVE_PREFIX.$version,
+            'thumb_path' => $thumb['path'] ?? '',
+            'thumb_version' => $thumb['version'] ?? '',
+            'thumb_url' => isset($thumb['version']) ? WebzineSettings::SERVE_PREFIX.$thumb['version'] : '',
         ];
     }
 
     /**
      * 남겨 둘 경로를 뺀 나머지 대체 이미지 파일을 모두 지웁니다 (교체 시 이전 파일 정리).
+     *
+     * 파생본도 이 저장소에 함께 있으므로, 호출측은 **원본과 파생본 경로를 모두** 넘겨야 한다.
      *
      * @param  array<int, string>  $keep  남길 상대 경로 목록
      * @return int 삭제한 파일 수

@@ -7,6 +7,7 @@ use App\Extension\AbstractPlugin;
 use App\Extension\Helpers\ExtensionMenuSyncHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Plugins\G7\Webzine\Addon\Http\Middleware\RecalculateListSummaryExtension;
 use Plugins\G7\Webzine\Addon\Listeners\BoardTypeSeedListener;
 use Plugins\G7\Webzine\Addon\Listeners\SettingsSavedListener;
 use Plugins\G7\Webzine\Addon\Listeners\WebzineIndexWidgetListener;
@@ -161,6 +162,34 @@ class Plugin extends AbstractPlugin
                 ],
                 'required' => false,
             ],
+            'fallback_thumb_path' => [
+                'type' => 'string',
+                'max' => 180,
+                'default' => '',
+                'label' => [
+                    'ko' => '대체 이미지 목록용 파생본 경로',
+                    'en' => 'Fallback Image List Derivative Path',
+                ],
+                'hint' => [
+                    'ko' => '목록 썸네일(80×80)용으로 줄여 둔 가로 240 WebP 의 저장 경로입니다. 저장 시점에 자동으로 만들어집니다.',
+                    'en' => 'Storage path of the 240px-wide WebP built for 80x80 list thumbnails. Created automatically on save.',
+                ],
+                'required' => false,
+            ],
+            'fallback_thumb_version' => [
+                'type' => 'string',
+                'max' => 64,
+                'default' => '',
+                'label' => [
+                    'ko' => '대체 이미지 파생본 버전 해시',
+                    'en' => 'Fallback Image Derivative Version Hash',
+                ],
+                'hint' => [
+                    'ko' => '파생본 내용 해시입니다. 공개 URL 에 들어가 교체 즉시 캐시를 무효화합니다. 자동으로 채워집니다.',
+                    'en' => 'Content hash of the derivative, embedded in its public URL so replacing it busts caches. Filled automatically.',
+                ],
+                'required' => false,
+            ],
             'fallback_alt' => [
                 'type' => 'string',
                 'max' => 200,
@@ -195,6 +224,8 @@ class Plugin extends AbstractPlugin
             'fallback_upload_version' => '',
             'fallback_image_url' => '',
             'fallback_alt' => '',
+            'fallback_thumb_path' => '',
+            'fallback_thumb_version' => '',
         ];
     }
 
@@ -246,6 +277,34 @@ class Plugin extends AbstractPlugin
         );
 
         return true;
+    }
+
+    /**
+     * 등록할 미들웨어 (1.2.0 신설).
+     *
+     * **임시 우회다.** 코어(`sirsoft-board`)의 목록 요약 계산에 결함이 있어 웹진 목록에서
+     * 눈에 띄게 드러난다({@see \Plugins\G7\Webzine\Addon\Support\ListSummary} 주석).
+     * **코어가 고쳐지면 이 메서드를 통째로 지우면 된다** — 레이아웃도 프론트도 DB 스키마도
+     * 건드리지 않았으므로 되돌릴 것이 없다.
+     *
+     * 코어 게이트(`ExtensionMiddlewareGate`)가 요청 라우트명을 `targets` 와 대조해 맞을
+     * 때만 실행한다. 대상은 **방문자 게시판 목록 하나**뿐이고, 그중에서도 webzine 유형만
+     * 다시 쓴다(판정은 미들웨어 안에서). 관리자 목록은 대상이 아니다.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getMiddleware(): array
+    {
+        return [
+            [
+                'class' => RecalculateListSummaryExtension::class,
+                'groups' => ['api'],
+                'timing' => 'after_core',
+                'targets' => [
+                    RecalculateListSummaryExtension::TARGET_ROUTE,
+                ],
+            ],
+        ];
     }
 
     /**

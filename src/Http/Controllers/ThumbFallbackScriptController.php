@@ -4,7 +4,6 @@ namespace Plugins\G7\Webzine\Addon\Http\Controllers;
 
 use App\Http\Controllers\Api\Base\PublicBaseController;
 use Illuminate\Http\Response;
-use Plugins\G7\Webzine\Addon\Support\WebzineSettings;
 
 /**
  * 썸네일 로드 실패 폴백 스크립트 서빙 컨트롤러 (공개, v1.1.0 신설).
@@ -36,10 +35,7 @@ class ThumbFallbackScriptController extends PublicBaseController
      */
     public function show(): Response
     {
-        $settings = WebzineSettings::all();
-        $mode = WebzineSettings::effectiveMode($settings);
-
-        $script = $this->buildScript($mode);
+        $script = $this->buildScript();
 
         return response($script, 200, [
             'Content-Type' => 'application/javascript; charset=utf-8',
@@ -51,13 +47,13 @@ class ThumbFallbackScriptController extends PublicBaseController
     /**
      * 스크립트 본문을 조립합니다.
      *
-     * 주입되는 값은 화이트리스트를 통과한 모드 문자열 하나뿐이며 `json_encode` 로
-     * 리터럴화한다 — 설정값이 스크립트 문법을 건드릴 여지를 남기지 않는다.
+     * **설정값을 주입하지 않는다**(1.2.0). 1.1.0 은 모드 문자열을 리터럴로 박아 넣어
+     * 바탕 레이어의 존재를 추론했는데, 이제는 스크립트가 DOM 에서 바탕을 직접 찾는다
+     * (`.g7-webzine-base`). 주입할 값이 없어지면서 설정값이 스크립트 문법에 닿을 여지도
+     * 함께 사라졌다.
      */
-    private function buildScript(string $mode): string
+    private function buildScript(): string
     {
-        $modeLiteral = json_encode($mode, JSON_UNESCAPED_SLASHES);
-
         return <<<JS
         /* g7-webzine-addon — 웹진 목록 썸네일 로드 실패 폴백 */
         (function () {
@@ -68,9 +64,9 @@ class ThumbFallbackScriptController extends PublicBaseController
             }
             window.__g7WebzineThumbFallback = true;
 
-            var MODE = {$modeLiteral};
             var THUMB_CLASS = 'g7-webzine-thumb';
             var FALLBACK_CLASS = 'g7-webzine-fallback';
+            var BASE_CLASS = 'g7-webzine-base';
             var BOX_SELECTOR = '.g7-webzine-thumbbox';
             var FAILED_ATTR = 'data-g7wz-failed';
 
@@ -80,17 +76,22 @@ class ThumbFallbackScriptController extends PublicBaseController
 
             /**
              * 이 박스에 "살아 있는 바탕 레이어" 가 있는지.
+             *
+             * 1.2.0 부터 바탕은 **썸네일이 없는 행에만** 그려진다. 그래서 모드만 보고
+             * 판단할 수 없고 **실제로 DOM 에 있는지** 봐야 한다 — 썸네일이 있는 행에는
+             * 바탕이 아예 없으므로, 그 썸네일이 죽으면 박스를 감춰 "요약만" 으로 수렴시킨다.
+             *
              * 자리표시자 바탕은 이미지가 아니라 실패할 수 없고, 대체 이미지 바탕은 그
-             * 이미지가 살아 있을 때만 유효하다. 요약만 모드는 바탕 자체가 없다.
+             * 이미지가 살아 있을 때만 유효하다.
              */
             function hasLivingBase(box) {
-                if (MODE === 'placeholder') {
-                    return true;
+                var base = box.querySelector('.' + BASE_CLASS);
+
+                if (!base) {
+                    return false;
                 }
 
-                var fallback = box.querySelector('img.' + FALLBACK_CLASS);
-
-                return !!fallback && !failed(fallback);
+                return base.nodeName !== 'IMG' || !failed(base);
             }
 
             /**

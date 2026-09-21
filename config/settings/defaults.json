@@ -1,7 +1,7 @@
 {
     "_meta": {
-        "version": "1.1.0",
-        "description": "웹진게시판 애드온 환경설정 (썸네일 없을 때 표시 / 대체 이미지)"
+        "version": "1.2.0",
+        "description": "웹진게시판 애드온 환경설정 (썸네일 없을 때 표시 / 대체 이미지 / 목록용 파생본)"
     },
     "defaults": {
         "no_thumbnail_mode": "summary",
@@ -10,15 +10,37 @@
         "fallback_upload_name": "",
         "fallback_upload_version": "",
         "fallback_image_url": "",
-        "fallback_alt": ""
+        "fallback_alt": "",
+        "fallback_thumb_path": "",
+        "fallback_thumb_version": ""
     },
     "frontend_schema": {
-        "no_thumbnail_mode": { "expose": false },
-        "fallback_source": { "expose": false },
-        "fallback_upload_path": { "expose": false },
-        "fallback_upload_name": { "expose": false },
-        "fallback_upload_version": { "expose": false },
-        "fallback_image_url": { "expose": false },
-        "fallback_alt": { "expose": false }
+        "no_thumbnail_mode": {
+            "expose": false
+        },
+        "fallback_source": {
+            "expose": false
+        },
+        "fallback_upload_path": {
+            "expose": false
+        },
+        "fallback_upload_name": {
+            "expose": false
+        },
+        "fallback_upload_version": {
+            "expose": false
+        },
+        "fallback_image_url": {
+            "expose": false
+        },
+        "fallback_alt": {
+            "expose": false
+        },
+        "fallback_thumb_path": {
+            "expose": false
+        },
+        "fallback_thumb_version": {
+            "expose": false
+        }
     }
 }

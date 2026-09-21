@@ -5,6 +5,53 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- List summaries on webzine boards are recalculated from the post body. The core builds them from
+  the first 200 characters of the **raw HTML**, so a post that opens with an image spends that
+  whole budget on `<figure class="image"><img …></figure>` and ends up with an empty summary. Two
+  more core defects ride along: `&nbsp;` decodes to U+00A0 but the whitespace collapse has no `/u`
+  modifier and `trim()` only strips ASCII, so a leading non-breaking space survives; and the
+  ellipsis is appended *after* the 150-character cut, making the result 153.
+
+  Measured across 127 posts on ten webzine boards: of the 125 with any text, only 66 (52.8%) could
+  reach 150 characters. The rest were cut short even though the post was long enough.
+
+  **This is a temporary workaround for a core defect.** It lives in one middleware and one pure
+  class; when the core is fixed, delete the `getMiddleware()` entry and both files. Nothing else —
+  no layout, no frontend, no schema — was touched.
+
+  Only the visitor board-list route is affected, and only for `webzine` boards. The admin list is
+  left alone. Bot SSR calls the same route internally and therefore gets the same result.
+
+- A 240px-wide WebP derivative of the fallback image, built when the image is saved and used by the
+  list. The fallback is drawn in an 80x80 CSS px box but the stored original is much larger (one
+  site: 335x335, 135,548 B). The original is kept for the settings preview and for replacing it.
+
+  `g7-webzine-addon:build-fallback-thumb` (with `--dry-run`) builds the derivative for an image
+  that was already saved under 1.1.0. Sites that never run it keep serving the original — the list
+  falls back to the original address and looks exactly as it did.
+
+  Requires imagick. This environment's GD is a bundled build with no WebP encoder, which is why
+  g7-image-delivery uses imagick too. Without imagick no derivative is built and a warning is
+  logged; nothing breaks.
+
+- `loading="lazy"`, `decoding="async"`, `width="80"` and `height="80"` on list thumbnails and on
+  the fallback image.
+
+### Changed
+
+- The fallback image is drawn **only on rows that have no thumbnail**. Until now it was a base
+  layer under every row, with the thumbnail painted on top — so a row with a real thumbnail still
+  downloaded the fallback, fully hidden, on every list page view. The failure-fallback script now
+  looks for the base layer in the DOM instead of inferring it from the configured mode.
+
+- The comment-count icon and number use `text-orange-700` / `dark:text-orange-600` instead of
+  `text-blue-600` / `dark:text-blue-400`. The grey treatment for blinded and deleted posts is
+  unchanged.
+
 ## [1.1.0] - 2026-09-16
 
 ### Added
