@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Development version `1.3.0` (staging only).
+
+### Added
+
+- **Public contract for other extensions** — `Plugins\G7\Webzine\Addon\PublicApi\WebzineCards`
+  (`VERSION = 1`) with one static method `cards(array $items): array`. g7-home-widgets uses it for
+  its webzine-style recent posts widget; other extensions should call only this class, never the
+  add-on's internal classes (`Support\*` and so on).
+  - Input: post items shaped like a subset of the core `PostResource` — `id` (int, required),
+    `is_secret`, `status`, `deleted_at`, `thumbnail`. Other keys are ignored; at most 100 items.
+  - Output: post id => `summary` (?string, up to 150 characters including the ellipsis, the same
+    recalculation as the webzine list), `thumbnail` (?string, the input value), `fallback_image`
+    (?string, only for posts without a thumbnail, when the add-on is set to show a fallback image).
+  - **Secret posts get `null` for all three**, even if a thumbnail is passed in. Posts that are not
+    `published` or are deleted get no summary.
+  - It does **not** check permissions: callers pass posts they already filtered through the core
+    board services. One query reads the start of the bodies, however many items there are.
+  - **This input/output is a promise.** It stays the same when the internals change; an
+    incompatible change raises `VERSION` and is noted here. Callers check the plugin is active
+    (`findActiveByIdentifier('g7-webzine-addon')`) and `class_exists(WebzineCards::class) &&
+    WebzineCards::VERSION >= 1`.
+
+### Unchanged
+
+- The webzine board list (layout, summary recalculation, thumbnails, fallback image), settings
+  schema and routes are the same as 1.2.0. No migration.
+
 ## [1.2.0] - 2026-09-21
 
 ### Added

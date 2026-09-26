@@ -139,6 +139,37 @@ This is optional. Without it the list serves the original address and looks exac
 - An original 240px wide or narrower is left alone — nothing is upscaled.
 - Derivatives are never built on a public request. Only the settings save and this command build them.
 
+## Public contract for other extensions (1.3.0+)
+
+Other extensions (g7-home-widgets' webzine-style widget, for one) get webzine card values through
+**one class only** — never through the add-on's internal classes:
+
+```php
+use Plugins\G7\Webzine\Addon\PublicApi\WebzineCards;
+
+// WebzineCards::VERSION === 1
+$cards = WebzineCards::cards($items);
+// $items: [['id' => 12, 'is_secret' => false, 'status' => 'published', 'deleted_at' => null, 'thumbnail' => '/…'], …]
+// $cards: [12 => ['summary' => '…', 'thumbnail' => '/…', 'fallback_image' => null], …]
+```
+
+- **Input** — post items shaped like a subset of the core `PostResource`: `id` (int, required),
+  `is_secret`, `status`, `deleted_at`, `thumbnail`. Other keys are ignored. At most 100 items.
+- **Output** — post id => `summary` (?string, up to 150 characters including the ellipsis, the same
+  recalculation as the webzine list), `thumbnail` (?string, the value passed in),
+  `fallback_image` (?string, only for posts without a thumbnail and only when the add-on is set to
+  show a fallback image). Items without a valid `id` are left out.
+- **Secret posts** get `null` for all three values, even when a thumbnail is passed in. Posts that
+  are not `published`, or are deleted, get no summary.
+- **No permission check.** Pass only posts you already filtered through the core board services
+  (readable boards, `PostService`, `PostResource`).
+- One query reads the start of the bodies, whatever the number of items.
+- **This input and output are a promise.** They stay the same when the internals change. An
+  incompatible change raises `VERSION` and is listed in the CHANGELOG.
+- Check availability before calling: the plugin is active
+  (`PluginRepositoryInterface::findActiveByIdentifier('g7-webzine-addon')`) **and**
+  `class_exists(WebzineCards::class) && WebzineCards::VERSION >= 1`.
+
 ## Requirements
 
 - Gnuboard7 `>= 7.0.10`
