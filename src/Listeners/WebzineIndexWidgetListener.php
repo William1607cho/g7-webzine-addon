@@ -4,6 +4,7 @@ namespace Plugins\G7\Webzine\Addon\Listeners;
 
 use App\Contracts\Extension\HookListenerInterface;
 use Illuminate\Support\Facades\Log;
+use Plugins\G7\Webzine\Addon\Support\TemplateListControls;
 use Plugins\G7\Webzine\Addon\Support\WebzineSettings;
 
 /**
@@ -95,6 +96,13 @@ class WebzineIndexWidgetListener implements HookListenerInterface
     /** fallback 분기 `if` 조건 rewrite 후 문자열 (webzine 제외 추가) */
     private const FALLBACK_REWRITE = "!['gallery','card','webzine'].includes(";
 
+    /**
+     * 이번 호출에서 템플릿에서 모은 목록 버튼 ({@see TemplateListControls::collect()} 결과).
+     *
+     * @var array{source: ?string, nodes: array<string, array<string, mixed>>, via: array<string, string>}
+     */
+    private array $templateControls = ['source' => null, 'nodes' => [], 'via' => []];
+
     public static function getSubscribedHooks(): array
     {
         return [
@@ -127,6 +135,10 @@ class WebzineIndexWidgetListener implements HookListenerInterface
             return $layout; // 이미 적용됨 (멱등)
         }
 
+        // 1.4.0: 템플릿이 그린 목록 버튼(글쓰기·관리자 링크·삭제글 토글·빈 상태)을 먼저 모아 둔다.
+        // 웹진 분기를 넣기 전에 모아야 웹진 분기 자신을 원본으로 잡지 않는다.
+        $this->templateControls = TemplateListControls::collect($layout['components']);
+
         $applied = 0;
         $layout['components'] = $this->transform($layout['components'], $applied);
 
@@ -136,6 +148,16 @@ class WebzineIndexWidgetListener implements HookListenerInterface
             ]);
 
             return $layout;
+        }
+
+        if (in_array('none', $this->templateControls['via'], true)) {
+            // 표식·모양 둘 다로 못 찾은 자리는 웹진 자체 버튼(1.3.0 모양)으로 그렸다.
+            // 화면은 깨지지 않으므로 error 가 아니라 warning 이다. 결과는 분기 Div 의
+            // data-g7wz-controls 속성에서도 확인할 수 있다.
+            Log::warning('[g7-webzine-addon] 템플릿 목록 버튼 일부를 찾지 못해 웹진 자체 버튼을 썼습니다.', [
+                'template_id' => $templateId,
+                'controls' => TemplateListControls::summary($this->templateControls),
+            ]);
         }
 
         return $this->injectFallbackScript($layout);
@@ -293,7 +315,7 @@ class WebzineIndexWidgetListener implements HookListenerInterface
     {
         $settings = WebzineSettings::all();
 
-        return $this->applyThumbnailMode(
+        $branch = $this->applyThumbnailMode(
             $this->webzineBranchTemplate(),
             WebzineSettings::effectiveMode($settings),
             // 1.2.0: 목록에는 80×80 용 파생본을 쓴다. 파생본이 없으면
@@ -301,6 +323,12 @@ class WebzineIndexWidgetListener implements HookListenerInterface
             WebzineSettings::listImageUrl($settings),
             WebzineSettings::altText($settings),
         );
+
+        // 1.4.0: 버튼 자리를 템플릿 노드 복사본으로 바꾼다(못 찾은 자리는 웹진 자체 버튼).
+        $branch = TemplateListControls::apply($branch, $this->templateControls['nodes']);
+        $branch['props']['data-g7wz-controls'] = TemplateListControls::summary($this->templateControls);
+
+        return $branch;
     }
 
     /**
@@ -603,6 +631,7 @@ array (
                           'description' => '게시판 관리자 진입 크로스링크 (관리자 게시물 조회 + 게시판 관리). can_access_admin 권한 보유자에게만 노출, 새 탭으로 이동.',
                         ),
                         'comment' => '관리자 진입 링크 묶음 - 유저 게시판 화면에서 관리자 화면으로 이동 (권한 게이트)',
+                        TemplateListControls::SLOT_KEY => TemplateListControls::ADMIN_LINKS,
                         'type' => 'basic',
                         'name' => 'Div',
                         'if' => '{{posts?.data?.abilities?.can_access_admin}}',
@@ -694,6 +723,7 @@ array (
                           'description' => '글쓰기 버튼 (권한/로그인 체크 포함)',
                         ),
                         'comment' => '글쓰기 버튼 - 권한 없으면 비활성화, 클릭 시 권한/로그인 체크',
+                        TemplateListControls::SLOT_KEY => TemplateListControls::WRITE_BUTTON,
                         'type' => 'basic',
                         'name' => 'Button',
                         'props' => 
@@ -834,6 +864,7 @@ array (
                   1 => 
                   array (
                     'comment' => '삭제된 게시글 포함 토글 버튼 (manager 권한 보유 시에만 표시)',
+                    TemplateListControls::SLOT_KEY => TemplateListControls::DELETED_TOGGLE,
                     'type' => 'basic',
                     'name' => 'Button',
                     'if' => '{{posts?.data?.abilities?.can_view_deleted}}',
@@ -1295,6 +1326,7 @@ array (
                   'is_partial' => true,
                   'description' => '게시판 목록 빈 상태 안내 (빈 페이지 / 게시글 없음 / 검색 결과 없음)',
                 ),
+                TemplateListControls::SLOT_KEY => TemplateListControls::EMPTY_STATES,
                 'type' => 'basic',
                 'name' => 'Div',
                 'children' => 
@@ -1509,6 +1541,7 @@ array (
                       'description' => '글쓰기 버튼 (권한/로그인 체크 포함)',
                     ),
                     'comment' => '글쓰기 버튼 - 권한 없으면 비활성화, 클릭 시 권한/로그인 체크',
+                    TemplateListControls::SLOT_KEY => TemplateListControls::WRITE_BUTTON,
                     'type' => 'basic',
                     'name' => 'Button',
                     'props' => 

@@ -23,6 +23,7 @@ and two `core.layout_extension.after_apply` / `sirsoft-board.post
 | **Configurable no-thumbnail rendering** (1.1.0) | An admin settings page picks what a post with no thumbnail shows: **summary only** (default — no thumbnail area at all, text uses the full row width), the **default placeholder** box, or an admin-supplied **fallback image** (uploaded here, or an existing image URL). |
 | **Broken-thumbnail fallback** (1.1.0) | If a post *has* a thumbnail but the image fails to load (e.g. an external image was deleted), the row falls back to the same setting. If the fallback image itself fails, the row falls back to summary only. |
 | **External image thumbnails** | The core only uses the first *internal* (self-uploaded) image as a post's thumbnail. On `webzine` boards, a first internal image still wins if present, but if the post has none, the first safe `http(s)` external image in the body is used instead. `data:`/`javascript:`/`blob:` schemes are still rejected. Other board types are unaffected. |
+| **List buttons follow the template** (1.4.0) | The write buttons (top and bottom), the admin links (admin post list / board settings), the "include deleted posts" toggle and the empty-state buttons are copied from the template's own card list, so the webzine list looks like the other list types — icon buttons on `wc-community`, text buttons on `sirsoft-basic`. See **Template buttons** below. |
 
 No add-on database tables — the thumbnail (`content_thumbnail_url`, computed
 by `sirsoft-board` at save time) and 150-character summary
@@ -138,6 +139,34 @@ This is optional. Without it the list serves the original address and looks exac
   Without imagick no derivative is built, a warning is logged, and the original is used.
 - An original 240px wide or narrower is left alone — nothing is upscaled.
 - Derivatives are never built on a public request. Only the settings save and this command build them.
+
+## Template buttons (1.4.0+)
+
+Until 1.3.0 the webzine branch carried its own copy of the card list's buttons, so a template
+that restyled its buttons (for example `wc-community` fork-20260926, which turned them into icon
+buttons with tooltips) left the webzine list with the old text buttons.
+
+From 1.4.0 the layout listener reads the compiled `board/index` tree it already receives, finds
+the template's **card** list branch (then gallery, then basic) and puts deep copies of these
+nodes into the webzine branch:
+
+| Slot | Found by marker (`data-testid`) | Found by shape (templates without markers) |
+|---|---|---|
+| Admin links | parent of `list-admin-posts` | node whose `if` checks `abilities?.can_access_admin` |
+| Write button (top and bottom) | `list-write` | `Button` whose `disabled` checks `abilities?.can_write` |
+| Include-deleted toggle | `toggle-deleted-posts` | `Button` whose `if` checks `abilities?.can_view_deleted` |
+| Empty states | — | node with both the "no posts on this page" and "no posts" branches |
+
+List rows (`iteration` nodes) are never used as a source. A slot that is found neither way keeps
+the add-on's own button (the 1.3.0 look), and a `warning` is logged.
+
+**Checking the result without logs**: the webzine branch `Div` carries
+`data-g7wz-controls="<source>:<slot>=<marker|shape|none>,…"`, e.g.
+`card:admin_links=marker,write_button=marker,deleted_toggle=marker,empty_states=shape`. It is in
+the layout JSON (`/api/layouts/<template>/board/index.json`) and in the rendered DOM.
+
+The thumbnail list itself (thumbnail, summary, badges, colours) is still drawn by the add-on and
+does not change.
 
 ## Public contract for other extensions (1.3.0+)
 

@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 1.4.0
+
+### Changed
+
+- **List buttons follow the template.** The webzine list's write buttons (top and bottom), admin
+  links, include-deleted toggle and empty-state buttons are now copied from the template's own
+  card list (then gallery, then basic) in the compiled `board/index` layout, instead of the add-on's
+  fixed copy. On `wc-community` fork-20260926 they become the same icon buttons with tooltips,
+  `aria-label` and the pressed state on the toggle; on `sirsoft-basic` they stay the template's text
+  buttons. Nodes are found by the template's `data-testid` markers first, then by their permission
+  expressions; list rows are never used. A slot found neither way keeps the 1.3.0 button and logs a
+  `warning`.
+
+### Added
+
+- `data-g7wz-controls` on the webzine branch `Div` — shows which branch the buttons came from and
+  how each slot was found, so a template change that breaks the lookup can be seen without logs.
+- Unit tests for the lookup (`tests/Unit/TemplateListControlsTest.php`): marked and unmarked
+  templates, list rows ignored, card → gallery → basic order, the add-on's own branch never used as
+  a source, fallback to the add-on's buttons.
+
+### Unchanged
+
+- The thumbnail list (thumbnail, summary, badges, colours), settings, routes and the public
+  contract `WebzineCards` (`VERSION = 1`). No migration.
+
 ## [1.3.0] - 2026-09-26
 
 ### Added
