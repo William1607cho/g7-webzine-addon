@@ -64,7 +64,7 @@
             "list_width_mode": { "label": "목록 가로 폭", "current": "현재값", "body": "글 본문 폭과 같게", "custom": "직접 입력(px)", "note": "모바일(768px 미만)에서는 항상 화면 폭 100%입니다." },
             "list_width_px": { "label": "목록 폭(px)", "hint": "480~1600" },
             "list_thumb_px": { "label": "목록 썸네일 크기(px)", "hint": "48~200, 기본 80" },
-            "list_summary_lines": { "label": "요약 줄 수", "hint": "1~5, 기본 2" },
+            "list_summary_lines": { "label": "요약 줄 수", "hint": "1~3, 기본 2" },
             "random_enabled": { "label": "랜덤 박스 켜기" },
             "random_boards": { "label": "적용 게시판", "hint": "웹진 유형 게시판 중에서 고릅니다.", "empty": "웹진 유형 게시판이 없습니다." },
             "random_count": { "label": "표시 개수", "hint": "1~12, 기본 4" },

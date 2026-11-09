@@ -71,7 +71,8 @@ final class WebzineDesignSettings
     public const INT_RANGES = [
         'list_width_px' => [960, self::WIDTH_MIN, self::WIDTH_MAX],
         'list_thumb_px' => [self::THUMB_DEFAULT, 48, 200],
-        'list_summary_lines' => [self::LINES_DEFAULT, 1, 5],
+        // 템플릿 CSS 에 있는 line-clamp 범위까지만 (HtmlContent 는 style 을 받지 않는다).
+        'list_summary_lines' => [self::LINES_DEFAULT, 1, 3],
         'random_count' => [4, 1, 12],
         'random_area_px' => [960, self::WIDTH_MIN, self::WIDTH_MAX],
         'random_columns' => [4, 2, 6],

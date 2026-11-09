@@ -64,7 +64,7 @@
             "list_width_mode": { "label": "List Width", "current": "Current", "body": "Same as post body", "custom": "Custom (px)", "note": "Below 768px the list is always 100% of the screen width." },
             "list_width_px": { "label": "List Width (px)", "hint": "480-1600" },
             "list_thumb_px": { "label": "List Thumbnail Size (px)", "hint": "48-200, default 80" },
-            "list_summary_lines": { "label": "Summary Lines", "hint": "1-5, default 2" },
+            "list_summary_lines": { "label": "Summary Lines", "hint": "1-3, default 2" },
             "random_enabled": { "label": "Enable Random Box" },
             "random_boards": { "label": "Boards", "hint": "Choose from webzine-type boards.", "empty": "There are no webzine-type boards." },
             "random_count": { "label": "Items Shown", "hint": "1-12, default 4" },

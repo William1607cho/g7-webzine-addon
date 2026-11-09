@@ -77,8 +77,8 @@ class WebzineListStyleTest extends TestCase
     {
         $out = S::apply($this->branch(), D::normalize(['list_summary_lines' => 3]), null);
 
-        $this->assertSame('3', $out['children'][1]['props']['style']['WebkitLineClamp']);
-        $this->assertSame('text-sm  overflow-hidden', $out['children'][1]['props']['className']);
+        $this->assertSame('text-sm line-clamp-3 overflow-hidden', $out['children'][1]['props']['className']);
+        $this->assertArrayNotHasKey('style', $out['children'][1]['props']);
     }
 
     public function test_글_보기_레이아웃_폭을_읽는다(): void

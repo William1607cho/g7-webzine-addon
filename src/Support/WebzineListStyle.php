@@ -69,12 +69,7 @@ final class WebzineListStyle
                 $node['props']['style'] = ['width' => $thumb.'px', 'height' => $thumb.'px'];
             }
             if ($lines !== WebzineDesignSettings::LINES_DEFAULT && ($node['name'] ?? null) === 'HtmlContent' && str_contains($className, self::SUMMARY_NEEDLE)) {
-                $node['props']['className'] = str_replace(self::SUMMARY_NEEDLE, '', $className);
-                $node['props']['style'] = [
-                    'display' => '-webkit-box',
-                    'WebkitBoxOrient' => 'vertical',
-                    'WebkitLineClamp' => (string) $lines,
-                ];
+                $node['props']['className'] = str_replace(self::SUMMARY_NEEDLE, 'line-clamp-'.$lines, $className);
             }
         }
 

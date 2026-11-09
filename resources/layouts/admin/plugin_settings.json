@@ -699,7 +699,7 @@
                                         "children": [
                                             { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_summary_lines.label" },
                                             { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.list_summary_lines.hint" },
-                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "list_summary_lines", "min": 1, "max": 5, "className": "mt-1" } }
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "list_summary_lines", "min": 1, "max": 3, "className": "mt-1" } }
                                         ]
                                     },
                                     { "type": "basic", "name": "H3", "props": { "className": "text-base font-semibold text-gray-900 dark:text-white border-t border-gray-200 dark:border-gray-700 pt-6" }, "text": "$t:g7-webzine-addon.settings.design.random_section" },
