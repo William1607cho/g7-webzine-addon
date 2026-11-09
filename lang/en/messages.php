@@ -12,4 +12,8 @@ return [
         'uploaded' => 'Fallback image uploaded.',
         'upload_failed' => 'Failed to upload the fallback image.',
     ],
+    'random_box' => [
+        'fetched' => 'Random box data loaded.',
+        'boards_listed' => 'Webzine boards loaded.',
+    ],
 ];

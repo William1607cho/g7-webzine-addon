@@ -51,6 +51,32 @@
                 "hint": "Text announced where the image cannot be seen (screen readers, etc.). Defaults to the site name when left empty.",
                 "placeholder": "Defaults to the site name"
             }
+        },
+        "tabs": {
+            "basic": "Basic",
+            "design": "Design"
+        },
+        "design": {
+            "list_section": "Webzine List",
+            "list_section_hint": "Applied to every webzine board.",
+            "random_section": "Random Box Above the List",
+            "random_section_hint": "Shown only on the first list page on screens 768px wide or more. Hidden while searching or filtering by category.",
+            "list_width_mode": { "label": "List Width", "current": "Current", "body": "Same as post body", "custom": "Custom (px)", "note": "Below 768px the list is always 100% of the screen width." },
+            "list_width_px": { "label": "List Width (px)", "hint": "480-1600" },
+            "list_thumb_px": { "label": "List Thumbnail Size (px)", "hint": "48-200, default 80" },
+            "list_summary_lines": { "label": "Summary Lines", "hint": "1-5, default 2" },
+            "random_enabled": { "label": "Enable Random Box" },
+            "random_boards": { "label": "Boards", "hint": "Choose from webzine-type boards.", "empty": "There are no webzine-type boards." },
+            "random_count": { "label": "Items Shown", "hint": "1-12, default 4" },
+            "random_area_mode": { "label": "Box Area Width", "list": "Same as list", "custom": "Custom (px)" },
+            "random_area_px": { "label": "Box Area Width (px)", "hint": "480-1600" },
+            "random_columns": { "label": "Columns", "hint": "2-6, default 4" },
+            "random_ratio": { "label": "Card Ratio", "r11": "1:1", "r43": "4:3", "r169": "16:9" },
+            "random_heading": { "label": "Heading", "show": "Show heading", "placeholder": "e.g. Recommended" },
+            "random_range": { "label": "Candidate Range", "all": "All (up to the latest 500)", "recent": "Latest N posts", "recent_n": "Latest posts", "recent_hint": "10-500, default 100" },
+            "random_only_images": { "label": "Only posts with images" },
+            "random_exclude_notice": { "label": "Exclude notices" },
+            "random_ttl": { "label": "Refresh Mode", "per_request": "Every reload", "fixed": "Fixed for N minutes", "minutes": "Fixed minutes", "minutes_hint": "1-120, default 10" }
         }
     }
 }

@@ -2,7 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Plugins\G7\Webzine\Addon\Http\Controllers\Admin\FallbackImageAdminController;
+use Plugins\G7\Webzine\Addon\Http\Controllers\Admin\WebzineBoardsAdminController;
 use Plugins\G7\Webzine\Addon\Http\Controllers\FallbackImageController;
+use Plugins\G7\Webzine\Addon\Http\Controllers\RandomBoxController;
 use Plugins\G7\Webzine\Addon\Http\Controllers\ThumbFallbackScriptController;
 
 /*
@@ -20,9 +22,20 @@ Route::get('fallback-image/{version}', [FallbackImageController::class, 'serve']
 Route::get('thumb-fallback.js', [ThumbFallbackScriptController::class, 'show'])
     ->name('thumb-fallback-script');
 
+// 랜덤 박스 데이터 (공개 — 코어 게시판 목록과 같은 열람 권한, 1.5.0)
+Route::get('random-box/{slug}', [RandomBoxController::class, 'show'])
+    ->middleware(['optional.sanctum', 'throttle:600,1', 'permission:user,sirsoft-board.{slug}.posts.read'])
+    ->where('slug', '[A-Za-z0-9_-]+')
+    ->name('random-box');
+
 // 대체 이미지 업로드 (관리자 인증 + 코어 플러그인 수정 권한)
 Route::prefix('admin')->name('admin.')->middleware('auth:sanctum')->group(function () {
     Route::post('fallback-image', [FallbackImageAdminController::class, 'store'])
         ->middleware('permission:admin,core.plugins.update')
         ->name('fallback-image.store');
+
+    // 디자인 탭의 게시판 선택지 (1.5.0)
+    Route::get('webzine-boards', [WebzineBoardsAdminController::class, 'index'])
+        ->middleware('permission:admin,core.plugins.update')
+        ->name('webzine-boards.index');
 });

@@ -51,6 +51,32 @@
                 "hint": "이미지를 볼 수 없는 환경(스크린리더 등)에서 읽히는 문구입니다. 비워 두면 사이트명이 쓰입니다.",
                 "placeholder": "비워 두면 사이트명"
             }
+        },
+        "tabs": {
+            "basic": "기본 설정",
+            "design": "디자인 설정"
+        },
+        "design": {
+            "list_section": "웹진 목록",
+            "list_section_hint": "모든 웹진 게시판에 공통으로 적용됩니다.",
+            "random_section": "목록 위 랜덤 박스",
+            "random_section_hint": "태블릿 세로(768px) 이상 화면의 목록 첫 페이지에서만 표시됩니다. 검색·분류 중에는 표시되지 않습니다.",
+            "list_width_mode": { "label": "목록 가로 폭", "current": "현재값", "body": "글 본문 폭과 같게", "custom": "직접 입력(px)", "note": "모바일(768px 미만)에서는 항상 화면 폭 100%입니다." },
+            "list_width_px": { "label": "목록 폭(px)", "hint": "480~1600" },
+            "list_thumb_px": { "label": "목록 썸네일 크기(px)", "hint": "48~200, 기본 80" },
+            "list_summary_lines": { "label": "요약 줄 수", "hint": "1~5, 기본 2" },
+            "random_enabled": { "label": "랜덤 박스 켜기" },
+            "random_boards": { "label": "적용 게시판", "hint": "웹진 유형 게시판 중에서 고릅니다.", "empty": "웹진 유형 게시판이 없습니다." },
+            "random_count": { "label": "표시 개수", "hint": "1~12, 기본 4" },
+            "random_area_mode": { "label": "박스 영역 가로 폭", "list": "목록 폭과 같게", "custom": "직접 입력(px)" },
+            "random_area_px": { "label": "박스 영역 폭(px)", "hint": "480~1600" },
+            "random_columns": { "label": "열 개수", "hint": "2~6, 기본 4" },
+            "random_ratio": { "label": "카드 비율", "r11": "1:1", "r43": "4:3", "r169": "16:9" },
+            "random_heading": { "label": "머리 문구", "show": "머리 문구 표시", "placeholder": "예: 추천 글" },
+            "random_range": { "label": "후보 범위", "all": "전체(최근 500개까지)", "recent": "최근 N개", "recent_n": "최근 글 수", "recent_hint": "10~500, 기본 100" },
+            "random_only_images": { "label": "이미지 있는 글만" },
+            "random_exclude_notice": { "label": "공지 제외" },
+            "random_ttl": { "label": "랜덤 고정 시간", "per_request": "새로고침마다", "fixed": "N분 고정", "minutes": "고정 시간(분)", "minutes_hint": "1~120, 기본 10" }
         }
     }
 }

@@ -13,6 +13,7 @@ use Plugins\G7\Webzine\Addon\Listeners\SettingsSavedListener;
 use Plugins\G7\Webzine\Addon\Listeners\WebzineIndexWidgetListener;
 use Plugins\G7\Webzine\Addon\Listeners\WebzineThumbnailListener;
 use Plugins\G7\Webzine\Addon\Services\FallbackImageService;
+use Plugins\G7\Webzine\Addon\Support\WebzineDesignSettings;
 use Plugins\G7\Webzine\Addon\Support\WebzineSettings;
 
 /**
@@ -204,7 +205,68 @@ class Plugin extends AbstractPlugin
                 ],
                 'required' => false,
             ],
+        ] + $this->designSettingsSchema();
+    }
+
+    /**
+     * 디자인 탭 설정 스키마 (1.5.0).
+     *
+     * 범위는 {@see WebzineDesignSettings::INT_RANGES} 와 같다 — 코어 저장 검증이 min/max 를
+     * 걸고, 설정 파일을 읽는 쪽({@see WebzineDesignSettings::normalize()})도 같은 범위로 조인다.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function designSettingsSchema(): array
+    {
+        $schema = [
+            'list_width_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::WIDTH_MODES, 'default' => WebzineDesignSettings::WIDTH_CURRENT],
+            'random_enabled' => ['type' => 'boolean', 'default' => false],
+            'random_board_ids' => ['type' => 'array', 'default' => []],
+            'random_area_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::AREA_MODES, 'default' => WebzineDesignSettings::AREA_LIST],
+            'random_ratio' => ['type' => 'enum', 'options' => WebzineDesignSettings::RATIOS, 'default' => '1:1'],
+            'random_heading_enabled' => ['type' => 'boolean', 'default' => false],
+            'random_heading_text' => ['type' => 'string', 'max' => 100, 'default' => ''],
+            'random_range_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::RANGE_MODES, 'default' => WebzineDesignSettings::RANGE_RECENT],
+            'random_only_images' => ['type' => 'boolean', 'default' => false],
+            'random_exclude_notice' => ['type' => 'boolean', 'default' => true],
+            'random_ttl_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::TTL_MODES, 'default' => WebzineDesignSettings::TTL_FIXED],
         ];
+
+        foreach (WebzineDesignSettings::INT_RANGES as $key => [$default, $min, $max]) {
+            $schema[$key] = ['type' => 'integer', 'min' => $min, 'max' => $max, 'default' => $default];
+        }
+
+        // 검증 오류 안내에 항목 이름으로 쓰인다 (코어 UpdatePluginSettingsRequest::attributes).
+        $labels = [
+            'list_width_mode' => ['목록 가로 폭', 'List Width'],
+            'list_width_px' => ['목록 폭(px)', 'List Width (px)'],
+            'list_thumb_px' => ['목록 썸네일 크기(px)', 'List Thumbnail Size (px)'],
+            'list_summary_lines' => ['요약 줄 수', 'Summary Lines'],
+            'random_enabled' => ['랜덤 박스 켜기', 'Enable Random Box'],
+            'random_board_ids' => ['랜덤 박스 적용 게시판', 'Random Box Boards'],
+            'random_count' => ['표시 개수', 'Items Shown'],
+            'random_area_mode' => ['박스 영역 폭', 'Box Area Width'],
+            'random_area_px' => ['박스 영역 폭(px)', 'Box Area Width (px)'],
+            'random_columns' => ['열 개수', 'Columns'],
+            'random_ratio' => ['카드 비율', 'Card Ratio'],
+            'random_heading_enabled' => ['머리 문구 표시', 'Show Heading'],
+            'random_heading_text' => ['머리 문구', 'Heading Text'],
+            'random_range_mode' => ['후보 범위', 'Candidate Range'],
+            'random_recent_n' => ['최근 글 수', 'Recent Posts'],
+            'random_only_images' => ['이미지 있는 글만', 'Only Posts With Images'],
+            'random_exclude_notice' => ['공지 제외', 'Exclude Notices'],
+            'random_ttl_mode' => ['랜덤 고정 시간', 'Refresh Mode'],
+            'random_ttl_minutes' => ['고정 시간(분)', 'Fixed Minutes'],
+        ];
+
+        foreach ($schema as $key => $field) {
+            $schema[$key] = $field + [
+                'required' => false,
+                'label' => ['ko' => $labels[$key][0], 'en' => $labels[$key][1]],
+            ];
+        }
+
+        return $schema;
     }
 
     /**
@@ -212,11 +274,11 @@ class Plugin extends AbstractPlugin
      *
      * 공개 배포 기본값은 "요약만" — 썸네일이 없으면 썸네일 영역을 아예 그리지 않는다.
      *
-     * @return array<string, string> 기본 설정값
+     * @return array<string, mixed> 기본 설정값
      */
     public function getConfigValues(): array
     {
-        return [
+        $values = [
             'no_thumbnail_mode' => WebzineSettings::MODE_SUMMARY,
             'fallback_source' => WebzineSettings::SOURCE_UPLOAD,
             'fallback_upload_path' => '',
@@ -226,7 +288,24 @@ class Plugin extends AbstractPlugin
             'fallback_alt' => '',
             'fallback_thumb_path' => '',
             'fallback_thumb_version' => '',
+            'list_width_mode' => WebzineDesignSettings::WIDTH_CURRENT,
+            'random_enabled' => false,
+            'random_board_ids' => [],
+            'random_area_mode' => WebzineDesignSettings::AREA_LIST,
+            'random_ratio' => '1:1',
+            'random_heading_enabled' => false,
+            'random_heading_text' => '',
+            'random_range_mode' => WebzineDesignSettings::RANGE_RECENT,
+            'random_only_images' => false,
+            'random_exclude_notice' => true,
+            'random_ttl_mode' => WebzineDesignSettings::TTL_FIXED,
         ];
+
+        foreach (WebzineDesignSettings::INT_RANGES as $key => [$default]) {
+            $values[$key] = $default;
+        }
+
+        return $values;
     }
 
     /**

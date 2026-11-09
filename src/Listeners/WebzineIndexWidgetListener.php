@@ -3,8 +3,15 @@
 namespace Plugins\G7\Webzine\Addon\Listeners;
 
 use App\Contracts\Extension\HookListenerInterface;
+use App\Contracts\Repositories\TemplateRepositoryInterface;
 use Illuminate\Support\Facades\Log;
+use Modules\Sirsoft\Board\Services\BoardService;
+use Plugins\G7\Webzine\Addon\Plugin;
+use Plugins\G7\Webzine\Addon\Support\BodyWidthResolver;
+use Plugins\G7\Webzine\Addon\Support\GalleryCardShape;
 use Plugins\G7\Webzine\Addon\Support\TemplateListControls;
+use Plugins\G7\Webzine\Addon\Support\WebzineDesignSettings;
+use Plugins\G7\Webzine\Addon\Support\WebzineListStyle;
 use Plugins\G7\Webzine\Addon\Support\WebzineSettings;
 
 /**
@@ -103,6 +110,16 @@ class WebzineIndexWidgetListener implements HookListenerInterface
      */
     private array $templateControls = ['source' => null, 'nodes' => [], 'via' => []];
 
+    /** 1.5.0: 이번 호출의 템플릿 id (글 본문 폭 실측에 쓴다) */
+    private int $templateId = 0;
+
+    /**
+     * 1.5.0: 랜덤 박스에 쓸 템플릿 갤러리 카드 (없으면 null = 자체 카드)
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $galleryCard = null;
+
     public static function getSubscribedHooks(): array
     {
         return [
@@ -139,6 +156,10 @@ class WebzineIndexWidgetListener implements HookListenerInterface
         // 웹진 분기를 넣기 전에 모아야 웹진 분기 자신을 원본으로 잡지 않는다.
         $this->templateControls = TemplateListControls::collect($layout['components']);
 
+        // 1.5.0: 갤러리 카드도 웹진 분기를 넣기 전에 잡아 둔다.
+        $this->templateId = $templateId;
+        $this->galleryCard = GalleryCardShape::locate($layout['components']);
+
         $applied = 0;
         $layout['components'] = $this->transform($layout['components'], $applied);
 
@@ -160,7 +181,78 @@ class WebzineIndexWidgetListener implements HookListenerInterface
             ]);
         }
 
+        $layout = $this->injectRandomBoxDataSource($layout);
+
         return $this->injectFallbackScript($layout);
+    }
+
+    /**
+     * 랜덤 박스 데이터소스를 레이아웃에 더한다 (1.5.0).
+     *
+     * 켜져 있고 선택된 게시판이 있을 때만 넣는다. `meta.seo.data_sources` 에는 넣지 않으므로
+     * 봇 SSR 은 이 데이터를 가져오지 않고 박스도 그리지 않는다.
+     *
+     * @param  array<string, mixed>  $layout
+     * @return array<string, mixed>
+     */
+    private function injectRandomBoxDataSource(array $layout): array
+    {
+        $slugs = $this->randomBoxSlugs();
+        if ($slugs === []) {
+            return $layout;
+        }
+
+        $sources = isset($layout['data_sources']) && is_array($layout['data_sources']) ? $layout['data_sources'] : [];
+        $sources[] = GalleryCardShape::dataSource($slugs);
+        $layout['data_sources'] = $sources;
+
+        return $layout;
+    }
+
+    /**
+     * 랜덤 박스를 켠 활성 웹진 게시판 slug 목록 (레이아웃 생성 시점에만 조회, 응답은 캐시된다).
+     *
+     * @return array<int, string>
+     */
+    private function randomBoxSlugs(): array
+    {
+        $design = WebzineDesignSettings::current();
+        if (! $design['random_enabled'] || $design['random_board_ids'] === []) {
+            return [];
+        }
+
+        try {
+            return app(BoardService::class)->getActiveBoards()
+                ->filter(fn ($b) => $b->type === Plugin::WEBZINE_BOARD_TYPE && in_array((int) $b->id, $design['random_board_ids'], true))
+                ->map(fn ($b) => (string) $b->slug)
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('[g7-webzine-addon] 랜덤 박스 게시판 목록을 읽지 못했습니다.', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+    }
+
+    /**
+     * 글 본문 폭(px) — 활성 템플릿의 글 보기 레이아웃에서 읽는다. 실패하면 null(현재값으로 대체).
+     */
+    private function bodyWidth(): ?int
+    {
+        try {
+            $template = app(TemplateRepositoryInterface::class)->findById($this->templateId);
+            if ($template === null) {
+                return null;
+            }
+            $path = base_path('templates/'.$template->identifier.'/layouts/board/show.json');
+            $layout = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+
+            return is_array($layout) ? BodyWidthResolver::fromShowLayout($layout) : null;
+        } catch (\Throwable $e) {
+            Log::warning('[g7-webzine-addon] 글 본문 폭을 읽지 못해 현재 폭을 유지합니다.', ['error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**
@@ -327,6 +419,37 @@ class WebzineIndexWidgetListener implements HookListenerInterface
         // 1.4.0: 버튼 자리를 템플릿 노드 복사본으로 바꾼다(못 찾은 자리는 웹진 자체 버튼).
         $branch = TemplateListControls::apply($branch, $this->templateControls['nodes']);
         $branch['props']['data-g7wz-controls'] = TemplateListControls::summary($this->templateControls);
+
+        // 1.5.0: 디자인 설정(폭·썸네일·요약 줄)과 랜덤 박스.
+        $design = WebzineDesignSettings::current();
+        $bodyWidth = $design['list_width_mode'] === WebzineDesignSettings::WIDTH_BODY ? $this->bodyWidth() : null;
+        $branch = WebzineListStyle::apply($branch, $design, $bodyWidth);
+
+        return $this->withRandomBox($branch, $design);
+    }
+
+    /**
+     * 켜져 있으면 목록 본체(children 인덱스 2) 바로 앞에 랜덤 박스 노드를 넣는다 (1.5.0).
+     *
+     * @param  array<string, mixed>  $branch
+     * @param  array<string, mixed>  $design
+     * @return array<string, mixed>
+     */
+    private function withRandomBox(array $branch, array $design): array
+    {
+        if (! $design['random_enabled'] || $this->randomBoxSlugs() === []) {
+            return $branch;
+        }
+
+        $origin = $this->galleryCard !== null ? 'template' : 'builtin';
+        $card = GalleryCardShape::adapt($this->galleryCard, (string) $design['random_ratio']);
+        $box = GalleryCardShape::boxNode($card, $design, $origin);
+
+        $inner = $branch['children'][0]['children'] ?? null;
+        if (is_array($inner)) {
+            array_splice($inner, 2, 0, [$box]);
+            $branch['children'][0]['children'] = $inner;
+        }
 
         return $branch;
     }

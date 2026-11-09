@@ -12,4 +12,8 @@ return [
         'uploaded' => '대체 이미지를 업로드했습니다.',
         'upload_failed' => '대체 이미지 업로드에 실패했습니다.',
     ],
+    'random_box' => [
+        'fetched' => '랜덤 박스 데이터를 불러왔습니다.',
+        'boards_listed' => '웹진 게시판 목록을 불러왔습니다.',
+    ],
 ];

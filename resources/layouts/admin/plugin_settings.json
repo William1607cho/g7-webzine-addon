@@ -20,6 +20,15 @@
             "auth_required": true,
             "initLocal": "form",
             "refetchOnMount": true
+        },
+        {
+            "id": "webzine_boards",
+            "type": "api",
+            "endpoint": "/api/plugins/g7-webzine-addon/admin/webzine-boards",
+            "method": "GET",
+            "auto_fetch": true,
+            "auth_required": true,
+            "fallback": { "data": [] }
         }
     ],
     "slots": {
@@ -153,9 +162,48 @@
                         },
                         "children": [
                             {
+                                "id": "tab_bar",
+                                "type": "basic",
+                                "name": "Div",
+                                "props": { "className": "flex gap-1 px-6 pt-4 border-b border-gray-200 dark:border-gray-700" },
+                                "children": [
+                                    {
+                                        "id": "tab_btn_basic",
+                                        "type": "basic",
+                                        "name": "Button",
+                                        "props": {
+                                            "type": "button",
+                                            "className": "px-4 py-2 -mb-px text-sm font-medium border-b-2 {{(_local.ui?.tab ?? 'basic') === 'basic' ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}}"
+                                        },
+                                        "actions": [
+                                            { "type": "click", "handler": "setState", "params": { "target": "local", "ui.tab": "basic" } }
+                                        ],
+                                        "children": [
+                                            { "type": "basic", "name": "Span", "text": "$t:g7-webzine-addon.settings.tabs.basic" }
+                                        ]
+                                    },
+                                    {
+                                        "id": "tab_btn_design",
+                                        "type": "basic",
+                                        "name": "Button",
+                                        "props": {
+                                            "type": "button",
+                                            "className": "px-4 py-2 -mb-px text-sm font-medium border-b-2 {{_local.ui?.tab === 'design' ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}}"
+                                        },
+                                        "actions": [
+                                            { "type": "click", "handler": "setState", "params": { "target": "local", "ui.tab": "design" } }
+                                        ],
+                                        "children": [
+                                            { "type": "basic", "name": "Span", "text": "$t:g7-webzine-addon.settings.tabs.design" }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
                                 "id": "settings_fields",
                                 "type": "basic",
                                 "name": "Div",
+                                "if": "{{(_local.ui?.tab ?? 'basic') === 'basic'}}",
                                 "props": {
                                     "className": "p-6 space-y-6"
                                 },
@@ -582,6 +630,299 @@
                                                             "className": "mt-1"
                                                         }
                                                     }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "design_fields",
+                                "type": "basic",
+                                "name": "Div",
+                                "if": "{{_local.ui?.tab === 'design'}}",
+                                "props": { "className": "p-6 space-y-6" },
+                                "children": [
+                                    { "type": "basic", "name": "H3", "props": { "className": "text-base font-semibold text-gray-900 dark:text-white" }, "text": "$t:g7-webzine-addon.settings.design.list_section" },
+                                    { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.list_section_hint" },
+                                    {
+                                        "id": "field_list_width_mode",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_width_mode.label" },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "list_width_mode",
+                                                    "value": "{{_local.form.list_width_mode ?? 'current'}}",
+                                                    "options": [
+                                                        { "label": "$t:g7-webzine-addon.settings.design.list_width_mode.current", "value": "current" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.list_width_mode.body", "value": "body" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.list_width_mode.custom", "value": "custom" }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    { "type": "change", "handler": "setState", "params": { "target": "local", "form.list_width_mode": "{{$event.target.value}}", "formTouched": true } }
+                                                ]
+                                            },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint mt-1" }, "text": "$t:g7-webzine-addon.settings.design.list_width_mode.note" }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_list_width_px",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "if": "{{_local.form.list_width_mode === 'custom'}}",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_width_px.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.list_width_px.hint" },
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "list_width_px", "min": 480, "max": 1600, "className": "mt-1" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_list_thumb_px",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_thumb_px.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.list_thumb_px.hint" },
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "list_thumb_px", "min": 48, "max": 200, "className": "mt-1" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_list_summary_lines",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_summary_lines.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.list_summary_lines.hint" },
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "list_summary_lines", "min": 1, "max": 5, "className": "mt-1" } }
+                                        ]
+                                    },
+                                    { "type": "basic", "name": "H3", "props": { "className": "text-base font-semibold text-gray-900 dark:text-white border-t border-gray-200 dark:border-gray-700 pt-6" }, "text": "$t:g7-webzine-addon.settings.design.random_section" },
+                                    { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_section_hint" },
+                                    {
+                                        "id": "field_random_enabled",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "props": { "className": "flex items-center gap-2" },
+                                        "children": [
+                                            { "type": "basic", "name": "Input", "props": { "id": "random_enabled", "type": "checkbox", "name": "random_enabled", "className": "h-4 w-4 rounded text-blue-600" } },
+                                            { "type": "basic", "name": "Label", "props": { "htmlFor": "random_enabled", "className": "text-sm text-gray-700 dark:text-gray-300" }, "text": "$t:g7-webzine-addon.settings.design.random_enabled.label" }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_boards",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_boards.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_boards.hint" },
+                                            { "type": "basic", "name": "P", "if": "{{(webzine_boards?.data ?? []).length === 0}}", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_boards.empty" },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "iteration": { "source": "{{webzine_boards?.data ?? []}}", "item_var": "board" },
+                                                "props": { "className": "flex items-center gap-2 mt-1" },
+                                                "children": [
+                                                    {
+                                                        "type": "basic",
+                                                        "name": "Input",
+                                                        "props": { "id": "random_board_{{board.id}}", "type": "checkbox", "checked": "{{(_local.form.random_board_ids ?? []).includes(board.id)}}", "className": "h-4 w-4 rounded text-blue-600" },
+                                                        "actions": [
+                                                            { "type": "change", "handler": "setState", "params": { "target": "local", "form.random_board_ids": "{{$event.target.checked ? [...(_local.form.random_board_ids ?? []), board.id] : (_local.form.random_board_ids ?? []).filter(function(x){return x !== board.id;})}}", "formTouched": true } }
+                                                        ]
+                                                    },
+                                                    { "type": "basic", "name": "Label", "props": { "htmlFor": "random_board_{{board.id}}", "className": "text-sm text-gray-700 dark:text-gray-300" }, "text": "{{board.name}} ({{board.slug}})" }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_count",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_count.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_count.hint" },
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "random_count", "min": 1, "max": 12, "className": "mt-1" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_area_mode",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_area_mode.label" },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "random_area_mode",
+                                                    "value": "{{_local.form.random_area_mode ?? 'list'}}",
+                                                    "options": [
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_area_mode.list", "value": "list" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_area_mode.custom", "value": "custom" }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    { "type": "change", "handler": "setState", "params": { "target": "local", "form.random_area_mode": "{{$event.target.value}}", "formTouched": true } }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_area_px",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "if": "{{_local.form.random_area_mode === 'custom'}}",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_area_px.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_area_px.hint" },
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "random_area_px", "min": 480, "max": 1600, "className": "mt-1" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_columns",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_columns.label" },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_columns.hint" },
+                                            { "type": "basic", "name": "Input", "props": { "type": "number", "name": "random_columns", "min": 2, "max": 6, "className": "mt-1" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_ratio",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_ratio.label" },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "random_ratio",
+                                                    "value": "{{_local.form.random_ratio ?? '1:1'}}",
+                                                    "options": [
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_ratio.r11", "value": "1:1" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_ratio.r43", "value": "4:3" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_ratio.r169", "value": "16:9" }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    { "type": "change", "handler": "setState", "params": { "target": "local", "form.random_ratio": "{{$event.target.value}}", "formTouched": true } }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_heading",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_heading.label" },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "props": { "className": "flex items-center gap-2 mt-1" },
+                                                "children": [
+                                                    { "type": "basic", "name": "Input", "props": { "id": "random_heading_enabled", "type": "checkbox", "name": "random_heading_enabled", "className": "h-4 w-4 rounded text-blue-600" } },
+                                                    { "type": "basic", "name": "Label", "props": { "htmlFor": "random_heading_enabled", "className": "text-sm text-gray-700 dark:text-gray-300" }, "text": "$t:g7-webzine-addon.settings.design.random_heading.show" }
+                                                ]
+                                            },
+                                            { "type": "basic", "name": "Input", "if": "{{_local.form.random_heading_enabled}}", "props": { "type": "text", "name": "random_heading_text", "maxLength": 100, "placeholder": "$t:g7-webzine-addon.settings.design.random_heading.placeholder", "className": "mt-2" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_range",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_range.label" },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "random_range_mode",
+                                                    "value": "{{_local.form.random_range_mode ?? 'recent'}}",
+                                                    "options": [
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_range.all", "value": "all" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_range.recent", "value": "recent" }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    { "type": "change", "handler": "setState", "params": { "target": "local", "form.random_range_mode": "{{$event.target.value}}", "formTouched": true } }
+                                                ]
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "if": "{{(_local.form.random_range_mode ?? 'recent') === 'recent'}}",
+                                                "props": { "className": "mt-2" },
+                                                "children": [
+                                                    { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_range.recent_n" },
+                                                    { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_range.recent_hint" },
+                                                    { "type": "basic", "name": "Input", "props": { "type": "number", "name": "random_recent_n", "min": 10, "max": 500, "className": "mt-1" } }
+                                                ]
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "props": { "className": "flex items-center gap-2 mt-3" },
+                                                "children": [
+                                                    { "type": "basic", "name": "Input", "props": { "id": "random_only_images", "type": "checkbox", "name": "random_only_images", "className": "h-4 w-4 rounded text-blue-600" } },
+                                                    { "type": "basic", "name": "Label", "props": { "htmlFor": "random_only_images", "className": "text-sm text-gray-700 dark:text-gray-300" }, "text": "$t:g7-webzine-addon.settings.design.random_only_images.label" }
+                                                ]
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "props": { "className": "flex items-center gap-2 mt-1" },
+                                                "children": [
+                                                    { "type": "basic", "name": "Input", "props": { "id": "random_exclude_notice", "type": "checkbox", "name": "random_exclude_notice", "className": "h-4 w-4 rounded text-blue-600" } },
+                                                    { "type": "basic", "name": "Label", "props": { "htmlFor": "random_exclude_notice", "className": "text-sm text-gray-700 dark:text-gray-300" }, "text": "$t:g7-webzine-addon.settings.design.random_exclude_notice.label" }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_ttl",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_ttl.label" },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "random_ttl_mode",
+                                                    "value": "{{_local.form.random_ttl_mode ?? 'fixed'}}",
+                                                    "options": [
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_ttl.per_request", "value": "per_request" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_ttl.fixed", "value": "fixed" }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    { "type": "change", "handler": "setState", "params": { "target": "local", "form.random_ttl_mode": "{{$event.target.value}}", "formTouched": true } }
+                                                ]
+                                            },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "if": "{{(_local.form.random_ttl_mode ?? 'fixed') === 'fixed'}}",
+                                                "props": { "className": "mt-2" },
+                                                "children": [
+                                                    { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_ttl.minutes" },
+                                                    { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.random_ttl.minutes_hint" },
+                                                    { "type": "basic", "name": "Input", "props": { "type": "number", "name": "random_ttl_minutes", "min": 1, "max": 120, "className": "mt-1" } }
                                                 ]
                                             }
                                         ]

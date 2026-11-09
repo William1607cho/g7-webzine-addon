@@ -1,7 +1,7 @@
 {
     "_meta": {
-        "version": "1.2.0",
-        "description": "웹진게시판 애드온 환경설정 (썸네일 없을 때 표시 / 대체 이미지 / 목록용 파생본)"
+        "version": "1.5.0",
+        "description": "웹진게시판 애드온 환경설정 (썸네일 없을 때 표시 / 대체 이미지 / 목록용 파생본 / 디자인 / 랜덤 박스)"
     },
     "defaults": {
         "no_thumbnail_mode": "summary",
@@ -12,7 +12,26 @@
         "fallback_image_url": "",
         "fallback_alt": "",
         "fallback_thumb_path": "",
-        "fallback_thumb_version": ""
+        "fallback_thumb_version": "",
+        "list_width_mode": "current",
+        "list_width_px": 960,
+        "list_thumb_px": 80,
+        "list_summary_lines": 2,
+        "random_enabled": false,
+        "random_board_ids": [],
+        "random_count": 4,
+        "random_area_mode": "list",
+        "random_area_px": 960,
+        "random_columns": 4,
+        "random_ratio": "1:1",
+        "random_heading_enabled": false,
+        "random_heading_text": "",
+        "random_range_mode": "recent",
+        "random_recent_n": 100,
+        "random_only_images": false,
+        "random_exclude_notice": true,
+        "random_ttl_mode": "fixed",
+        "random_ttl_minutes": 10
     },
     "frontend_schema": {
         "no_thumbnail_mode": {
@@ -41,6 +60,25 @@
         },
         "fallback_thumb_version": {
             "expose": false
-        }
+        },
+        "list_width_mode": { "expose": false },
+        "list_width_px": { "expose": false },
+        "list_thumb_px": { "expose": false },
+        "list_summary_lines": { "expose": false },
+        "random_enabled": { "expose": false },
+        "random_board_ids": { "expose": false },
+        "random_count": { "expose": false },
+        "random_area_mode": { "expose": false },
+        "random_area_px": { "expose": false },
+        "random_columns": { "expose": false },
+        "random_ratio": { "expose": false },
+        "random_heading_enabled": { "expose": false },
+        "random_heading_text": { "expose": false },
+        "random_range_mode": { "expose": false },
+        "random_recent_n": { "expose": false },
+        "random_only_images": { "expose": false },
+        "random_exclude_notice": { "expose": false },
+        "random_ttl_mode": { "expose": false },
+        "random_ttl_minutes": { "expose": false }
     }
 }
