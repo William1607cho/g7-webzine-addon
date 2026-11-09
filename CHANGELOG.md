@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 1.5.0
+
+### Added
+
+- **Settings tabs.** The settings screen is split into **Basic** (all existing items, unchanged) and
+  **Design**. Existing saved values and keys are not touched.
+- **Design settings** — list width (current / same as the post body / custom px, 480-1600),
+  list thumbnail size (48-200 px, default 80) and summary lines (1-3, default 2). Below 768 px the
+  list is always full width. Applied to every webzine board; with the default values the list
+  layout is unchanged.
+- **Random box above the list (off by default).** Chosen webzine boards can show a random set of
+  posts as cards above the list, using the template's gallery card (or a built-in card if the
+  template has none). Options: count, columns, aspect ratio, box width, heading, candidate range
+  (all up to the latest 500, or latest N), only posts with images, exclude notices, and either a new
+  set on every reload or the same set for N minutes.
+- Shown only on the first list page, on screens at least 768 px wide, and never while searching or
+  filtering by category. It is not added to the bot SSR page.
+- `GET /api/plugins/g7-webzine-addon/random-box/{slug}` — same `posts.read` permission as the board
+  list. The response has no post body or author e-mail. `data-g7wz-randombox` and `data-g7wz-design`
+  attributes show which card source and design values were applied.
+- Admin endpoint `GET /api/plugins/g7-webzine-addon/admin/webzine-boards` for the board picker.
+- Unit tests for settings normalization, candidate selection, the seeded pick, the card copy and the
+  design layout changes.
+
+### Changed
+
+- Thumbnails in the random box use g7-image-delivery 960/1600 variants through its public contract
+  when available; otherwise the original thumbnail address. Not a required dependency.
+
+### Unchanged
+
+- Basic tab behaviour and saved keys, the public contract `WebzineCards` (`VERSION = 1`), bot SSR
+  output of the list. No migration.
+
 ## [1.4.0] - 2026-09-27
 
 ### Changed

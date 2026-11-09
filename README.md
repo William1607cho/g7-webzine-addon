@@ -24,14 +24,17 @@ and two `core.layout_extension.after_apply` / `sirsoft-board.post
 | **Broken-thumbnail fallback** (1.1.0) | If a post *has* a thumbnail but the image fails to load (e.g. an external image was deleted), the row falls back to the same setting. If the fallback image itself fails, the row falls back to summary only. |
 | **External image thumbnails** | The core only uses the first *internal* (self-uploaded) image as a post's thumbnail. On `webzine` boards, a first internal image still wins if present, but if the post has none, the first safe `http(s)` external image in the body is used instead. `data:`/`javascript:`/`blob:` schemes are still rejected. Other board types are unaffected. |
 | **List buttons follow the template** (1.4.0) | The write buttons (top and bottom), the admin links (admin post list / board settings), the "include deleted posts" toggle and the empty-state buttons are copied from the template's own card list, so the webzine list looks like the other list types — icon buttons on `wc-community`, text buttons on `sirsoft-basic`. See **Template buttons** below. |
+| **Design settings** (1.5.0) | List width (current / same as the post body / custom), list thumbnail size and summary lines. With the defaults the list looks exactly as before. See **Design settings** below. |
+| **Random box above the list** (1.5.0, off by default) | Selected webzine boards can show a random set of posts as cards above the list, on screens at least 768px wide and on the first page only. See **Random box** below. |
 
 No add-on database tables — the thumbnail (`content_thumbnail_url`, computed
 by `sirsoft-board` at save time) and 150-character summary
 (`content_preview`, computed via a DB-level `SUBSTRING`) are already part of
 `sirsoft-board`'s core list API response for every board type; this plugin
-only changes how they're laid out. Since 1.1.0 the add-on serves three small
+only changes how they're laid out. Since 1.1.0 the add-on serves a few small
 routes of its own (fallback-image upload / fallback-image serving / the
-broken-thumbnail fallback script) — see **Settings** below.
+broken-thumbnail fallback script, and since 1.5.0 the random box data and the
+admin board picker) — see **Settings** below.
 
 ## Settings
 
@@ -198,6 +201,41 @@ $cards = WebzineCards::cards($items);
 - Check availability before calling: the plugin is active
   (`PluginRepositoryInterface::findActiveByIdentifier('g7-webzine-addon')`) **and**
   `class_exists(WebzineCards::class) && WebzineCards::VERSION >= 1`.
+
+## Design settings (1.5.0)
+
+The settings screen has two tabs. **Basic** holds the existing no-thumbnail and fallback-image
+items. **Design** is new; it applies to every webzine board:
+
+| Setting | Options | Default |
+|---|---|---|
+| List width | Current / Same as the post body / Custom (480-1600 px) | Current |
+| List thumbnail size | 48-200 px | 80 |
+| Summary lines | 1-3 | 2 |
+
+Below 768px the list is always 100% of the screen width. "Same as the post body" reads the active
+template's post view layout; if no width can be read it behaves as "Current". The resulting values
+are shown on the webzine branch `Div` as `data-g7wz-design`.
+
+## Random box (1.5.0)
+
+Off by default — updating does not change any site's list. Enable it on the Design tab and pick
+webzine boards.
+
+- Cards use the template's gallery list card when the template has one, otherwise a built-in card
+  (`data-g7wz-randombox` shows `template` or `builtin`).
+- Shown only on screens at least 768px wide, on the first list page, and not while searching or
+  filtering by category. Bot SSR pages never include it.
+- Secret posts show a lock instead of an image. Posts without a thumbnail use the Basic tab's fallback
+  image when it is configured.
+- Options: number of items (1-12), columns (2-6), ratio (1:1, 4:3, 16:9), box width, heading text,
+  candidate range (all up to the latest 500, or latest N), only posts with images, exclude notices,
+  and new set on every reload or the same set for N minutes.
+- Read permission is the core's `posts.read` for the board. The response has no post body or author
+  e-mail. Each visitor group gets its own cached set for the fixed period, so a set may show a post
+  that was changed or removed moments ago until the period ends.
+- Thumbnails use g7-image-delivery 960/1600 variants when that plugin is active and has them; otherwise
+  the original thumbnail address. g7-image-delivery is optional.
 
 ## Requirements
 
