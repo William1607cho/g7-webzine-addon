@@ -199,11 +199,13 @@ class WebzineListStyleTest extends TestCase
         $this->assertStringContainsString('absolute top-2 left-2', $badge['props']['className']);
         $this->assertStringContainsString('bg-primary-600', $badge['props']['className']);
         $this->assertStringNotContainsString('z-', $badge['props']['className']);
+        $this->assertStringContainsString(' p-2 rounded-lg ', $badge['props']['className']);
+        $this->assertStringNotContainsString('py-0.5', $badge['props']['className']);
         $this->assertSame(5, $badge['props']['style']['zIndex']);
         $this->assertSame('trophy', $badge['children'][0]['props']['name']);
         $this->assertSame('추천 <b>글</b>', $badge['children'][1]['text']);
         $this->assertArrayNotHasKey('children', $badge['children'][1]);
-        $this->assertSame('1.75rem', $card['children'][4]['props']['style']['top']);
+        $this->assertSame('2.25rem', $card['children'][4]['props']['style']['top']);
     }
 
     public function test_자체_카드에도_배지가_붙고_메타가_없다(): void

@@ -22,8 +22,12 @@ final class RandomBoxCardDecor
     /** 템플릿 카드의 상단 배지 행(공지·분류·N) 표식 */
     private const TOP_ROW_NEEDLE = 'absolute inset-x-0 top-0';
 
-    /** 배지가 있을 때 템플릿 상단 배지 행을 내리는 거리 (배지 top-2 + 높이 약 1.25rem 아래) */
-    private const TOP_ROW_SHIFT = '1.75rem';
+    /**
+     * 배지가 있을 때 템플릿 상단 배지 행(p-2)을 내리는 거리.
+     * 배지 아래 끝 = top-2(.5rem) + 높이 2rem(글자 1rem + 위아래 여백 .5rem×2) = 2.5rem,
+     * 행의 배지 시작 = 2.25rem + 행 여백 .5rem = 2.75rem → 사이 .25rem.
+     */
+    private const TOP_ROW_SHIFT = '2.25rem';
 
     /** 배지 쌓임 순서 — 이미지(auto) 위, 템플릿 잠금·블라인드 오버레이(z-10) 아래 */
     public const BADGE_Z = 5;
@@ -95,7 +99,8 @@ final class RandomBoxCardDecor
             'type' => 'basic',
             'name' => 'Span',
             'props' => [
-                'className' => 'absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary-600 text-white shadow-sm pointer-events-none',
+                // 여백은 네 방향 모두 p-2(.5rem), 모서리 둥글기는 그 여백과 같은 rounded-lg(.5rem).
+                'className' => 'absolute top-2 left-2 inline-flex items-center gap-1 p-2 rounded-lg text-xs font-bold bg-primary-600 text-white shadow-sm pointer-events-none',
                 'style' => ['maxWidth' => 'calc(100% - 1rem)', 'zIndex' => self::BADGE_Z],
                 'data-g7wz-badge' => '1',
             ],
