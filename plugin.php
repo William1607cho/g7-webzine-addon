@@ -45,6 +45,22 @@ class Plugin extends AbstractPlugin
     /** board_types 에 등록하는 웹진 유형 슬러그 */
     public const WEBZINE_BOARD_TYPE = 'webzine';
 
+    /*
+     * 2차(1.5.0) 디자인 값 — WebzineDesignSettings 와 같은 값을 여기 따로 둔다.
+     * `plugin:update` 는 이 파일만 새로 읽고 Support 클래스는 옛 판이 메모리에 남아, 업데이트 끝의
+     * getConfigValues() 에서 새 상수를 찾지 못했다(2026-11-10 스테이징 실측). 같은 값인지는
+     * 단위 테스트(PluginDesignConstantsTest)가 이 파일 글자로 대조한다.
+     */
+    private const THUMB_MODES = ['fit', 'px'];
+
+    private const THUMB_FIT = 'fit';
+
+    private const AREA_MODES = ['list', 'original', 'body', 'custom'];
+
+    private const BADGE_MAX = 20;
+
+    private const BADGE_DEFAULT = '추천게시물';
+
     /**
      * 플러그인 메타데이터.
      *
@@ -220,12 +236,12 @@ class Plugin extends AbstractPlugin
     {
         $schema = [
             'list_width_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::WIDTH_MODES, 'default' => WebzineDesignSettings::WIDTH_CURRENT],
-            'list_thumb_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::THUMB_MODES, 'default' => WebzineDesignSettings::THUMB_FIT],
+            'list_thumb_mode' => ['type' => 'enum', 'options' => self::THUMB_MODES, 'default' => self::THUMB_FIT],
             'random_badge_enabled' => ['type' => 'boolean', 'default' => true],
-            'random_badge_text' => ['type' => 'string', 'max' => WebzineDesignSettings::BADGE_MAX, 'default' => WebzineDesignSettings::BADGE_DEFAULT],
+            'random_badge_text' => ['type' => 'string', 'max' => self::BADGE_MAX, 'default' => self::BADGE_DEFAULT],
             'random_enabled' => ['type' => 'boolean', 'default' => false],
             'random_board_ids' => ['type' => 'array', 'default' => []],
-            'random_area_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::AREA_MODES, 'default' => WebzineDesignSettings::AREA_LIST],
+            'random_area_mode' => ['type' => 'enum', 'options' => self::AREA_MODES, 'default' => WebzineDesignSettings::AREA_LIST],
             'random_ratio' => ['type' => 'enum', 'options' => WebzineDesignSettings::RATIOS, 'default' => '1:1'],
             'random_heading_enabled' => ['type' => 'boolean', 'default' => false],
             'random_heading_text' => ['type' => 'string', 'max' => 100, 'default' => ''],
@@ -295,9 +311,9 @@ class Plugin extends AbstractPlugin
             'fallback_thumb_path' => '',
             'fallback_thumb_version' => '',
             'list_width_mode' => WebzineDesignSettings::WIDTH_CURRENT,
-            'list_thumb_mode' => WebzineDesignSettings::THUMB_FIT,
+            'list_thumb_mode' => self::THUMB_FIT,
             'random_badge_enabled' => true,
-            'random_badge_text' => WebzineDesignSettings::BADGE_DEFAULT,
+            'random_badge_text' => self::BADGE_DEFAULT,
             'random_enabled' => false,
             'random_board_ids' => [],
             'random_area_mode' => WebzineDesignSettings::AREA_LIST,
