@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 1.5.0
+## [1.5.0] - 2026-11-10
 
 ### Added
 
@@ -30,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a new set on every reload or the same set for N minutes.
 - Box cards show the image (or lock / fallback image), a badge and the title only; author, date,
   view and comment counts are left out of the copied card.
-- **"Recommended" badge** on each box card (top left, trophy icon, site primary colour). On by
+- **"Recommended" badge** on each box card (top left, trophy icon, site primary colour, the same
+  padding on all four sides with a matching corner radius). On by
   default with the text "추천게시물"; it can be turned off or given another text (plain text only,
   up to 20 characters; an empty text uses the default). The badge is drawn below the lock overlay.
 - Shown only on the first list page, on screens at least 768 px wide, and never while searching or

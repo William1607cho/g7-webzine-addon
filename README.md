@@ -239,7 +239,9 @@ webzine boards.
 - Cards use the template's gallery list card when the template has one, otherwise a built-in card
   (`data-g7wz-randombox` shows `template` or `builtin`). Cards show the image (or lock / fallback
   image), the badge and the title only.
-- **Badge**: a "추천게시물" badge with a trophy icon in the top-left corner of each card (on by
+- **Badge**: a "추천게시물" badge with a trophy icon in the top-left corner of each card (even
+  padding on all four sides, rounded corners of the same size; the template's own top badges
+  — notice, category, new — move down so they stay clear of it; on by
   default). You can turn it off or change the text on the Design tab — plain text only, up to 20
   characters; an empty text uses the default. Change the text if your site is in another language.
 - **Box width**: Same as the list (default) / Original width (the template's list width without the
