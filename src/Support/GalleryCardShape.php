@@ -37,12 +37,19 @@ final class GalleryCardShape
     /**
      * 카드를 박스용으로 고친다 (템플릿 복사본이든 자체 카드든 같은 처리).
      *
+     * 카드에는 이미지(또는 자물쇠·대체 이미지)·배지·제목만 남긴다 — 작성자·날짜·조회·댓글 줄은
+     * 복사한 구조에서 뺀다({@see RandomBoxCardDecor}).
+     *
      * @param  array<string, mixed>|null  $card  템플릿 카드 (없으면 자체 카드)
+     * @param  string|null  $badgeText  배지 문구 (null 이면 배지 없음)
      * @return array<string, mixed>
      */
-    public static function adapt(?array $card, string $ratio): array
+    public static function adapt(?array $card, string $ratio, ?string $badgeText = null): array
     {
-        $node = $card ?? self::builtinCard();
+        $node = RandomBoxCardDecor::stripMeta($card ?? self::builtinCard());
+        if ($badgeText !== null) {
+            $node = RandomBoxCardDecor::withBadge($node, $badgeText);
+        }
         unset($node['comment']);
         $node['iteration'] = [
             'source' => '{{'.self::DATA_SOURCE_ID.'?.data?.items ?? []}}',
@@ -61,9 +68,11 @@ final class GalleryCardShape
      *
      * @param  array<string, mixed>  $card  {@see self::adapt()} 결과
      * @param  array<string, mixed>  $design  정규화 설정
+     * @param  array<string, string>|null  $areaStyle  박스 폭 style ({@see RandomBoxWidth::resolve()})
+     * @param  string  $boxDesign  확인용 속성 `data-g7wz-boxdesign` 값
      * @return array<string, mixed>
      */
-    public static function boxNode(array $card, array $design, string $origin): array
+    public static function boxNode(array $card, array $design, string $origin, ?array $areaStyle = null, string $boxDesign = ''): array
     {
         $children = [];
         if ($design['random_heading_enabled'] && $design['random_heading_text'] !== '') {
@@ -85,15 +94,11 @@ final class GalleryCardShape
             'className' => 'hidden md:block mb-6',
             'data-g7wz-randombox' => $origin,
         ];
-        if ($design['random_area_mode'] === WebzineDesignSettings::AREA_CUSTOM) {
-            // 목록 폭과 무관하게 가운데 정렬한다(목록보다 넓어도 좁아도 같은 식).
-            $props['style'] = [
-                'width' => (int) $design['random_area_px'].'px',
-                'maxWidth' => 'calc(100vw - 4rem)',
-                'position' => 'relative',
-                'left' => '50%',
-                'transform' => 'translateX(-50%)',
-            ];
+        if ($boxDesign !== '') {
+            $props['data-g7wz-boxdesign'] = $boxDesign;
+        }
+        if ($areaStyle !== null) {
+            $props['style'] = $areaStyle;
         }
 
         return [

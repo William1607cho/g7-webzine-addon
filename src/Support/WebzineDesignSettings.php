@@ -24,13 +24,33 @@ final class WebzineDesignSettings
 
     public const WIDTH_MODES = [self::WIDTH_CURRENT, self::WIDTH_BODY, self::WIDTH_CUSTOM];
 
-    /** 박스 영역 폭: 목록 폭과 같게 */
+    /** 박스 영역 폭: 목록과 같게 (1.5.0 1차의 "목록 폭과 같게"와 같은 값) */
     public const AREA_LIST = 'list';
+
+    /** 박스 영역 폭: 원래 폭 (목록 폭 지정이 없을 때의 템플릿 폭) */
+    public const AREA_ORIGINAL = 'original';
+
+    /** 박스 영역 폭: 글 보기 본문 폭 따라 */
+    public const AREA_BODY = 'body';
 
     /** 박스 영역 폭: 직접 입력 */
     public const AREA_CUSTOM = 'custom';
 
-    public const AREA_MODES = [self::AREA_LIST, self::AREA_CUSTOM];
+    public const AREA_MODES = [self::AREA_LIST, self::AREA_ORIGINAL, self::AREA_BODY, self::AREA_CUSTOM];
+
+    /** 목록 썸네일: 행 높이에 맞춤 (768px 이상, 기본) */
+    public const THUMB_FIT = 'fit';
+
+    /** 목록 썸네일: 직접 입력(px) */
+    public const THUMB_PX = 'px';
+
+    public const THUMB_MODES = [self::THUMB_FIT, self::THUMB_PX];
+
+    /** 배지 기본 문구 */
+    public const BADGE_DEFAULT = '추천게시물';
+
+    /** 배지 문구 상한(글자 수) — 저장 API 스키마 max 와 같다 */
+    public const BADGE_MAX = 20;
 
     /** 후보 범위: 전체 ({@see self::ALL_CAP} 건까지) */
     public const RANGE_ALL = 'all';
@@ -90,6 +110,9 @@ final class WebzineDesignSettings
     {
         $out = [
             'list_width_mode' => self::oneOf($raw['list_width_mode'] ?? null, self::WIDTH_MODES, self::WIDTH_CURRENT),
+            'list_thumb_mode' => self::oneOf($raw['list_thumb_mode'] ?? null, self::THUMB_MODES, self::THUMB_FIT),
+            'random_badge_enabled' => self::bool($raw['random_badge_enabled'] ?? true),
+            'random_badge_text' => self::badgeText($raw['random_badge_text'] ?? null),
             'random_enabled' => self::bool($raw['random_enabled'] ?? false),
             'random_board_ids' => self::boardIds($raw['random_board_ids'] ?? []),
             'random_area_mode' => self::oneOf($raw['random_area_mode'] ?? null, self::AREA_MODES, self::AREA_LIST),
@@ -197,6 +220,25 @@ final class WebzineDesignSettings
         }
 
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * 배지 문구 정리 — 레이아웃 text(글자 노드)로만 나가며, 표현식·다국어 표식·제어 문자를 지우고
+     * 연속 공백을 하나로 줄인 뒤 {@see self::BADGE_MAX} 자로 자른다. 비면 기본 문구.
+     */
+    public static function badgeText(mixed $value): string
+    {
+        $text = is_scalar($value) ? (string) $value : '';
+        $text = str_replace(['{{', '}}'], '', $text);
+        $text = preg_replace('/[\x00-\x1f\x7f]+/u', ' ', $text) ?? '';
+        $text = preg_replace('/\s+/u', ' ', $text) ?? '';
+        $text = trim($text);
+        while (str_starts_with($text, '$')) {
+            $text = ltrim(substr($text, 1));
+        }
+        $text = trim(mb_substr($text, 0, self::BADGE_MAX));
+
+        return $text === '' ? self::BADGE_DEFAULT : $text;
     }
 
     /**

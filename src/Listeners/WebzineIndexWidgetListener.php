@@ -9,6 +9,7 @@ use Modules\Sirsoft\Board\Services\BoardService;
 use Plugins\G7\Webzine\Addon\Plugin;
 use Plugins\G7\Webzine\Addon\Support\BodyWidthResolver;
 use Plugins\G7\Webzine\Addon\Support\GalleryCardShape;
+use Plugins\G7\Webzine\Addon\Support\RandomBoxWidth;
 use Plugins\G7\Webzine\Addon\Support\TemplateListControls;
 use Plugins\G7\Webzine\Addon\Support\WebzineDesignSettings;
 use Plugins\G7\Webzine\Addon\Support\WebzineListStyle;
@@ -422,36 +423,39 @@ class WebzineIndexWidgetListener implements HookListenerInterface
 
         // 1.5.0: 디자인 설정(폭·썸네일·요약 줄)과 랜덤 박스.
         $design = WebzineDesignSettings::current();
-        $bodyWidth = $design['list_width_mode'] === WebzineDesignSettings::WIDTH_BODY ? $this->bodyWidth() : null;
+        $needsBody = $design['list_width_mode'] === WebzineDesignSettings::WIDTH_BODY
+            || ($design['random_enabled'] && $design['random_area_mode'] === WebzineDesignSettings::AREA_BODY);
+        $bodyWidth = $needsBody ? $this->bodyWidth() : null;
+        // 글 본문 폭은 목록 폭 "글 본문 폭과 같게"에서만 쓰인다(resolveMaxWidth).
         $branch = WebzineListStyle::apply($branch, $design, $bodyWidth);
 
-        return $this->withRandomBox($branch, $design);
+        return $this->withRandomBox($branch, $design, $bodyWidth);
     }
 
     /**
      * 켜져 있으면 목록 본체(children 인덱스 2) 바로 앞에 랜덤 박스 노드를 넣는다 (1.5.0).
+     * 박스 폭이 목록과 다르면 목록 폭 제한 밖에 둔다({@see RandomBoxWidth::place()}).
      *
      * @param  array<string, mixed>  $branch
      * @param  array<string, mixed>  $design
      * @return array<string, mixed>
      */
-    private function withRandomBox(array $branch, array $design): array
+    private function withRandomBox(array $branch, array $design, ?int $bodyWidth): array
     {
         if (! $design['random_enabled'] || $this->randomBoxSlugs() === []) {
             return $branch;
         }
 
         $origin = $this->galleryCard !== null ? 'template' : 'builtin';
-        $card = GalleryCardShape::adapt($this->galleryCard, (string) $design['random_ratio']);
-        $box = GalleryCardShape::boxNode($card, $design, $origin);
+        $badge = $design['random_badge_enabled'] ? (string) $design['random_badge_text'] : null;
+        $card = GalleryCardShape::adapt($this->galleryCard, (string) $design['random_ratio'], $badge);
+        $width = RandomBoxWidth::resolve($design, $bodyWidth);
 
-        $inner = $branch['children'][0]['children'] ?? null;
-        if (is_array($inner)) {
-            array_splice($inner, 2, 0, [$box]);
-            $branch['children'][0]['children'] = $inner;
-        }
+        $placement = RandomBoxWidth::placement($branch, $width['inherit']);
+        $summary = sprintf('area=%s:%s,badge=%s', $width['mode'], $placement, $badge !== null ? 'on' : 'off');
+        $box = GalleryCardShape::boxNode($card, $design, $origin, $width['style'], $summary);
 
-        return $branch;
+        return RandomBoxWidth::place($branch, $box, $width['inherit']);
     }
 
     /**

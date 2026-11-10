@@ -98,4 +98,55 @@ class WebzineDesignSettingsTest extends TestCase
         $this->assertSame(500, D::candidateLimit(D::normalize(['random_range_mode' => 'all'])));
         $this->assertSame(30, D::candidateLimit(D::normalize(['random_recent_n' => 30])));
     }
+
+    public function test_2차_새_키의_기본값(): void
+    {
+        $d = D::normalize([]);
+
+        $this->assertSame('fit', $d['list_thumb_mode']);
+        $this->assertTrue($d['random_badge_enabled']);
+        $this->assertSame('추천게시물', $d['random_badge_text']);
+        $this->assertSame('list', $d['random_area_mode']);
+    }
+
+    public function test_박스_폭_네_가지와_1차_저장값을_읽는다(): void
+    {
+        foreach (['list', 'original', 'body', 'custom'] as $mode) {
+            $this->assertSame($mode, D::normalize(['random_area_mode' => $mode])['random_area_mode']);
+        }
+        // 1차 스테이징 저장값(목록 폭과 같게 = list, 썸네일 80, 모드 키 없음)
+        $first = D::normalize(['random_area_mode' => 'list', 'list_thumb_px' => 80]);
+        $this->assertSame('list', $first['random_area_mode']);
+        $this->assertSame('fit', $first['list_thumb_mode']);
+        $this->assertSame(80, $first['list_thumb_px']);
+        $this->assertSame('list', D::normalize(['random_area_mode' => 'wide'])['random_area_mode']);
+        $this->assertSame('fit', D::normalize(['list_thumb_mode' => 'huge'])['list_thumb_mode']);
+        $this->assertSame('px', D::normalize(['list_thumb_mode' => 'px'])['list_thumb_mode']);
+    }
+
+    public function test_배지_문구의_공백을_정리하고_비면_기본_문구다(): void
+    {
+        $this->assertSame('오늘의 글', D::badgeText("  오늘의 \n\t  글  "));
+        $this->assertSame('추천게시물', D::badgeText('   '));
+        $this->assertSame('추천게시물', D::badgeText(null));
+        $this->assertSame('추천게시물', D::badgeText(['x']));
+        $this->assertSame('추천게시물', D::normalize(['random_badge_text' => ''])['random_badge_text']);
+    }
+
+    public function test_배지_문구는_20자로_자르고_표현식과_다국어_표식을_지운다(): void
+    {
+        $long = str_repeat('가', 25);
+
+        $this->assertSame(str_repeat('가', 20), D::badgeText($long));
+        $this->assertSame('추천 글', D::badgeText('{{추천}} 글'));
+        $this->assertSame('t:admin.x', D::badgeText('$t:admin.x'));
+        $this->assertSame('t:x', D::badgeText('$$ t:x'));
+        $this->assertSame('<b>굵게</b>', D::badgeText('<b>굵게</b>'));
+    }
+
+    public function test_배지_끄기를_읽는다(): void
+    {
+        $this->assertFalse(D::normalize(['random_badge_enabled' => false])['random_badge_enabled']);
+        $this->assertFalse(D::normalize(['random_badge_enabled' => 'false'])['random_badge_enabled']);
+    }
 }

@@ -220,6 +220,9 @@ class Plugin extends AbstractPlugin
     {
         $schema = [
             'list_width_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::WIDTH_MODES, 'default' => WebzineDesignSettings::WIDTH_CURRENT],
+            'list_thumb_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::THUMB_MODES, 'default' => WebzineDesignSettings::THUMB_FIT],
+            'random_badge_enabled' => ['type' => 'boolean', 'default' => true],
+            'random_badge_text' => ['type' => 'string', 'max' => WebzineDesignSettings::BADGE_MAX, 'default' => WebzineDesignSettings::BADGE_DEFAULT],
             'random_enabled' => ['type' => 'boolean', 'default' => false],
             'random_board_ids' => ['type' => 'array', 'default' => []],
             'random_area_mode' => ['type' => 'enum', 'options' => WebzineDesignSettings::AREA_MODES, 'default' => WebzineDesignSettings::AREA_LIST],
@@ -240,7 +243,10 @@ class Plugin extends AbstractPlugin
         $labels = [
             'list_width_mode' => ['목록 가로 폭', 'List Width'],
             'list_width_px' => ['목록 폭(px)', 'List Width (px)'],
+            'list_thumb_mode' => ['목록 썸네일 크기', 'List Thumbnail Size'],
             'list_thumb_px' => ['목록 썸네일 크기(px)', 'List Thumbnail Size (px)'],
+            'random_badge_enabled' => ['배지 표시', 'Show Badge'],
+            'random_badge_text' => ['배지 문구', 'Badge Text'],
             'list_summary_lines' => ['요약 줄 수', 'Summary Lines'],
             'random_enabled' => ['랜덤 박스 켜기', 'Enable Random Box'],
             'random_board_ids' => ['랜덤 박스 적용 게시판', 'Random Box Boards'],
@@ -289,6 +295,9 @@ class Plugin extends AbstractPlugin
             'fallback_thumb_path' => '',
             'fallback_thumb_version' => '',
             'list_width_mode' => WebzineDesignSettings::WIDTH_CURRENT,
+            'list_thumb_mode' => WebzineDesignSettings::THUMB_FIT,
+            'random_badge_enabled' => true,
+            'random_badge_text' => WebzineDesignSettings::BADGE_DEFAULT,
             'random_enabled' => false,
             'random_board_ids' => [],
             'random_area_mode' => WebzineDesignSettings::AREA_LIST,

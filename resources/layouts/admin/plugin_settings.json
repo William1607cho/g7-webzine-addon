@@ -683,9 +683,35 @@
                                         ]
                                     },
                                     {
+                                        "id": "field_list_thumb_mode",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_thumb_mode.label" },
+                                            {
+                                                "type": "composite",
+                                                "name": "RadioGroup",
+                                                "props": {
+                                                    "name": "list_thumb_mode",
+                                                    "value": "{{_local.form.list_thumb_mode ?? 'fit'}}",
+                                                    "options": [
+                                                        { "label": "$t:g7-webzine-addon.settings.design.list_thumb_mode.fit", "value": "fit" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.list_thumb_mode.px", "value": "px" }
+                                                    ],
+                                                    "className": "mt-2"
+                                                },
+                                                "actions": [
+                                                    { "type": "change", "handler": "setState", "params": { "target": "local", "form.list_thumb_mode": "{{$event.target.value}}", "formTouched": true } }
+                                                ]
+                                            },
+                                            { "type": "basic", "name": "P", "props": { "className": "form-hint mt-1" }, "text": "$t:g7-webzine-addon.settings.design.list_thumb_mode.note" }
+                                        ]
+                                    },
+                                    {
                                         "id": "field_list_thumb_px",
                                         "type": "basic",
                                         "name": "Div",
+                                        "if": "{{_local.form.list_thumb_mode === 'px'}}",
                                         "children": [
                                             { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.list_thumb_px.label" },
                                             { "type": "basic", "name": "P", "props": { "className": "form-hint" }, "text": "$t:g7-webzine-addon.settings.design.list_thumb_px.hint" },
@@ -765,6 +791,8 @@
                                                     "value": "{{_local.form.random_area_mode ?? 'list'}}",
                                                     "options": [
                                                         { "label": "$t:g7-webzine-addon.settings.design.random_area_mode.list", "value": "list" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_area_mode.original", "value": "original" },
+                                                        { "label": "$t:g7-webzine-addon.settings.design.random_area_mode.body", "value": "body" },
                                                         { "label": "$t:g7-webzine-addon.settings.design.random_area_mode.custom", "value": "custom" }
                                                     ],
                                                     "className": "mt-2"
@@ -837,6 +865,25 @@
                                                 ]
                                             },
                                             { "type": "basic", "name": "Input", "if": "{{_local.form.random_heading_enabled}}", "props": { "type": "text", "name": "random_heading_text", "maxLength": 100, "placeholder": "$t:g7-webzine-addon.settings.design.random_heading.placeholder", "className": "mt-2" } }
+                                        ]
+                                    },
+                                    {
+                                        "id": "field_random_badge",
+                                        "type": "basic",
+                                        "name": "Div",
+                                        "children": [
+                                            { "type": "basic", "name": "Label", "props": { "className": "form-label" }, "text": "$t:g7-webzine-addon.settings.design.random_badge.label" },
+                                            {
+                                                "type": "basic",
+                                                "name": "Div",
+                                                "props": { "className": "flex items-center gap-2 mt-1" },
+                                                "children": [
+                                                    { "type": "basic", "name": "Input", "props": { "id": "random_badge_enabled", "type": "checkbox", "name": "random_badge_enabled", "className": "h-4 w-4 rounded text-blue-600" } },
+                                                    { "type": "basic", "name": "Label", "props": { "htmlFor": "random_badge_enabled", "className": "text-sm text-gray-700 dark:text-gray-300" }, "text": "$t:g7-webzine-addon.settings.design.random_badge.show" }
+                                                ]
+                                            },
+                                            { "type": "basic", "name": "Input", "if": "{{_local.form.random_badge_enabled}}", "props": { "type": "text", "name": "random_badge_text", "maxLength": 20, "placeholder": "$t:g7-webzine-addon.settings.design.random_badge.placeholder", "className": "mt-2" } },
+                                            { "type": "basic", "name": "P", "if": "{{_local.form.random_badge_enabled}}", "props": { "className": "form-hint mt-1" }, "text": "$t:g7-webzine-addon.settings.design.random_badge.hint" }
                                         ]
                                     },
                                     {
@@ -1114,17 +1161,20 @@
         },
         "list_width_mode": { "type": "enum", "options": ["current", "body", "custom"], "default": "current" },
         "list_width_px": { "type": "integer", "default": 960 },
+        "list_thumb_mode": { "type": "enum", "options": ["fit", "px"], "default": "fit" },
         "list_thumb_px": { "type": "integer", "default": 80 },
         "list_summary_lines": { "type": "integer", "default": 2 },
         "random_enabled": { "type": "boolean", "default": false },
         "random_board_ids": { "type": "array", "default": [] },
         "random_count": { "type": "integer", "default": 4 },
-        "random_area_mode": { "type": "enum", "options": ["list", "custom"], "default": "list" },
+        "random_area_mode": { "type": "enum", "options": ["list", "original", "body", "custom"], "default": "list" },
         "random_area_px": { "type": "integer", "default": 960 },
         "random_columns": { "type": "integer", "default": 4 },
         "random_ratio": { "type": "enum", "options": ["1:1", "4:3", "16:9"], "default": "1:1" },
         "random_heading_enabled": { "type": "boolean", "default": false },
         "random_heading_text": { "type": "string", "default": "" },
+        "random_badge_enabled": { "type": "boolean", "default": true },
+        "random_badge_text": { "type": "string", "default": "추천게시물" },
         "random_range_mode": { "type": "enum", "options": ["all", "recent"], "default": "recent" },
         "random_recent_n": { "type": "integer", "default": 100 },
         "random_only_images": { "type": "boolean", "default": false },
