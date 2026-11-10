@@ -198,6 +198,8 @@ class WebzineListStyleTest extends TestCase
         $this->assertSame('1', $badge['props']['data-g7wz-badge']);
         $this->assertStringContainsString('absolute top-2 left-2', $badge['props']['className']);
         $this->assertStringContainsString('bg-primary-600', $badge['props']['className']);
+        $this->assertStringNotContainsString('z-', $badge['props']['className']);
+        $this->assertSame(5, $badge['props']['style']['zIndex']);
         $this->assertSame('trophy', $badge['children'][0]['props']['name']);
         $this->assertSame('추천 <b>글</b>', $badge['children'][1]['text']);
         $this->assertArrayNotHasKey('children', $badge['children'][1]);

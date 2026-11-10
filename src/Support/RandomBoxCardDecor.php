@@ -25,6 +25,9 @@ final class RandomBoxCardDecor
     /** 배지가 있을 때 템플릿 상단 배지 행을 내리는 거리 (배지 top-2 + 높이 약 1.25rem 아래) */
     private const TOP_ROW_SHIFT = '1.75rem';
 
+    /** 배지 쌓임 순서 — 이미지(auto) 위, 템플릿 잠금·블라인드 오버레이(z-10) 아래 */
+    public const BADGE_Z = 5;
+
     /**
      * 메타 줄을 뺀다. 제목이 들어 있는 노드는 남기고 그 안을 다시 살핀다.
      *
@@ -80,6 +83,9 @@ final class RandomBoxCardDecor
     /**
      * 배지 노드. 색은 템플릿 primary(사이트 주황) 600 — 라이트·다크 같은 값(흰 글자 대비 약 4.1).
      *
+     * 쌓임 순서는 이미지 위·잠금/블라인드 오버레이(z-10) 아래(z 5)다. 작은 카드(6열·16:9 등)에서
+     * 배지와 가운데 자물쇠가 겹쳐도 자물쇠가 위에 그려진다.
+     *
      * @return array<string, mixed>
      */
     public static function badgeNode(string $text): array
@@ -89,8 +95,8 @@ final class RandomBoxCardDecor
             'type' => 'basic',
             'name' => 'Span',
             'props' => [
-                'className' => 'absolute top-2 left-2 z-20 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary-600 text-white shadow-sm pointer-events-none',
-                'style' => ['maxWidth' => 'calc(100% - 1rem)'],
+                'className' => 'absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary-600 text-white shadow-sm pointer-events-none',
+                'style' => ['maxWidth' => 'calc(100% - 1rem)', 'zIndex' => self::BADGE_Z],
                 'data-g7wz-badge' => '1',
             ],
             'children' => [
