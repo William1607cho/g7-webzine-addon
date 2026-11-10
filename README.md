@@ -24,7 +24,7 @@ and two `core.layout_extension.after_apply` / `sirsoft-board.post
 | **Broken-thumbnail fallback** (1.1.0) | If a post *has* a thumbnail but the image fails to load (e.g. an external image was deleted), the row falls back to the same setting. If the fallback image itself fails, the row falls back to summary only. |
 | **External image thumbnails** | The core only uses the first *internal* (self-uploaded) image as a post's thumbnail. On `webzine` boards, a first internal image still wins if present, but if the post has none, the first safe `http(s)` external image in the body is used instead. `data:`/`javascript:`/`blob:` schemes are still rejected. Other board types are unaffected. |
 | **List buttons follow the template** (1.4.0) | The write buttons (top and bottom), the admin links (admin post list / board settings), the "include deleted posts" toggle and the empty-state buttons are copied from the template's own card list, so the webzine list looks like the other list types — icon buttons on `wc-community`, text buttons on `sirsoft-basic`. See **Template buttons** below. |
-| **Design settings** (1.5.0) | List width (current / same as the post body / custom), list thumbnail size and summary lines. With the defaults the list looks exactly as before. See **Design settings** below. |
+| **Design settings** (1.5.0) | List width (current / same as the post body / custom), list thumbnail size and summary lines. At 768px and wider rows have a fixed height and the thumbnail fits the row height by default, so the list looks different after updating; below 768px it is unchanged. See **Design settings** below. |
 | **Random box above the list** (1.5.0, off by default) | Selected webzine boards can show a random set of posts as cards above the list, on screens at least 768px wide and on the first page only. See **Random box** below. |
 
 No add-on database tables — the thumbnail (`content_thumbnail_url`, computed
@@ -210,12 +210,26 @@ items. **Design** is new; it applies to every webzine board:
 | Setting | Options | Default |
 |---|---|---|
 | List width | Current / Same as the post body / Custom (480-1600 px) | Current |
-| List thumbnail size | 48-200 px | 80 |
+| List thumbnail size | Fit row height / Custom (48-200 px) | Fit row height |
 | Summary lines | 1-3 | 2 |
 
 Below 768px the list is always 100% of the screen width. "Same as the post body" reads the active
 template's post view layout; if no width can be read it behaves as "Current". The resulting values
 are shown on the webzine branch `Div` as `data-g7wz-design`.
+
+**Row height (768px and wider).** Each row is as tall as one title line + the summary lines setting
++ the author line (78 / 98 / 118 px for 1 / 2 / 3 lines with the template's default font size).
+Posts with a short or no summary keep the same row height and leave the space below empty. Titles
+stay on one line with an ellipsis. The height is calculated from the template's text sizes; if you
+use another template or change its font sizes, please check the result.
+
+**Thumbnail "Fit row height"** makes the thumbnail a square as tall as the row at 768px and wider;
+below 768px it stays at the previous 80px. To get the previous thumbnail size back, choose Custom 80
+(rows keep the fixed height). A custom size taller than the row makes the row as tall as the
+thumbnail. List thumbnails are the 240px variants, so sizes up to about 120px stay sharp on 2x
+screens; larger custom sizes may look soft.
+
+Below 768px the list (row height, thumbnail size, title) is the same as before.
 
 ## Random box (1.5.0)
 
@@ -223,12 +237,19 @@ Off by default — updating does not change any site's list. Enable it on the De
 webzine boards.
 
 - Cards use the template's gallery list card when the template has one, otherwise a built-in card
-  (`data-g7wz-randombox` shows `template` or `builtin`).
+  (`data-g7wz-randombox` shows `template` or `builtin`). Cards show the image (or lock / fallback
+  image), the badge and the title only.
+- **Badge**: a "추천게시물" badge with a trophy icon in the top-left corner of each card (on by
+  default). You can turn it off or change the text on the Design tab — plain text only, up to 20
+  characters; an empty text uses the default. Change the text if your site is in another language.
+- **Box width**: Same as the list (default) / Original width (the template's list width without the
+  design setting) / Follow post width (the post view body width; "Original width" if it cannot be
+  read) / Custom (480-1600 px). The applied width is shown as `data-g7wz-boxdesign`.
 - Shown only on screens at least 768px wide, on the first list page, and not while searching or
   filtering by category. Bot SSR pages never include it.
 - Secret posts show a lock instead of an image. Posts without a thumbnail use the Basic tab's fallback
   image when it is configured.
-- Options: number of items (1-12), columns (2-6), ratio (1:1, 4:3, 16:9), box width, heading text,
+- Options: number of items (1-12), columns (2-6), ratio (1:1, 4:3, 16:9), heading text,
   candidate range (all up to the latest 500, or latest N), only posts with images, exclude notices,
   and new set on every reload or the same set for N minutes.
 - Read permission is the core's `posts.read` for the board. The response has no post body or author

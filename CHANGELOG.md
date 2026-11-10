@@ -12,22 +12,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings tabs.** The settings screen is split into **Basic** (all existing items, unchanged) and
   **Design**. Existing saved values and keys are not touched.
 - **Design settings** — list width (current / same as the post body / custom px, 480-1600),
-  list thumbnail size (48-200 px, default 80) and summary lines (1-3, default 2). Below 768 px the
-  list is always full width. Applied to every webzine board; with the default values the list
-  layout is unchanged.
+  list thumbnail size (fit row height, default / custom 48-200 px) and summary lines (1-3,
+  default 2). Below 768 px the list is always full width. Applied to every webzine board.
+- **Fixed row height (768 px and wider).** Each list row is as tall as one title line + the summary
+  lines setting + the author line, so rows with short summaries keep the same height (the space
+  below stays empty). Titles stay on one line with an ellipsis, as before.
+- **Thumbnail "fit row height" (new default).** At 768 px and wider the list thumbnail is a square
+  as tall as the row (78 / 98 / 118 px for 1 / 2 / 3 summary lines); below 768 px it stays 80 px.
+  This changes the look at 768 px and wider after updating; choose the custom size 80 to get the
+  previous thumbnail size back (rows keep the fixed height). A custom size taller than the row makes
+  the row as tall as the thumbnail.
 - **Random box above the list (off by default).** Chosen webzine boards can show a random set of
   posts as cards above the list, using the template's gallery card (or a built-in card if the
-  template has none). Options: count, columns, aspect ratio, box width, heading, candidate range
-  (all up to the latest 500, or latest N), only posts with images, exclude notices, and either a new
-  set on every reload or the same set for N minutes.
+  template has none). Options: count, columns, aspect ratio, box width (same as the list /
+  original template width / follow the post body width / custom 480-1600 px), heading, candidate
+  range (all up to the latest 500, or latest N), only posts with images, exclude notices, and either
+  a new set on every reload or the same set for N minutes.
+- Box cards show the image (or lock / fallback image), a badge and the title only; author, date,
+  view and comment counts are left out of the copied card.
+- **"Recommended" badge** on each box card (top left, trophy icon, site primary colour). On by
+  default with the text "추천게시물"; it can be turned off or given another text (plain text only,
+  up to 20 characters; an empty text uses the default). The badge is drawn below the lock overlay.
 - Shown only on the first list page, on screens at least 768 px wide, and never while searching or
   filtering by category. It is not added to the bot SSR page.
 - `GET /api/plugins/g7-webzine-addon/random-box/{slug}` — same `posts.read` permission as the board
-  list. The response has no post body or author e-mail. `data-g7wz-randombox` and `data-g7wz-design`
-  attributes show which card source and design values were applied.
+  list. The response has no post body or author e-mail. `data-g7wz-randombox`, `data-g7wz-boxdesign`
+  and `data-g7wz-design` attributes show which card source, box width and design values were applied.
 - Admin endpoint `GET /api/plugins/g7-webzine-addon/admin/webzine-boards` for the board picker.
-- Unit tests for settings normalization, candidate selection, the seeded pick, the card copy and the
-  design layout changes.
+- Unit tests for settings normalization, badge text cleanup, candidate selection, the seeded pick,
+  the card copy, the box width placement, the row height formula and the design layout changes.
 
 ### Changed
 
@@ -37,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Unchanged
 
 - Basic tab behaviour and saved keys, the public contract `WebzineCards` (`VERSION = 1`), bot SSR
-  output of the list. No migration.
+  output of the list, the list below 768 px. No migration.
 
 ## [1.4.0] - 2026-09-27
 
